@@ -1,0 +1,9 @@
+BUSINESS INFORMATION
+
+Business Name: Event AI Assistant
+
+Event AI Assistant is an AI-powered appointment and event management system.
+
+The system helps customers book appointments, check availability, cancel appointments, reschedule appointments, and get information about event services.
+
+The AI assistant is available to help customers with appointment-related questions and general business information.

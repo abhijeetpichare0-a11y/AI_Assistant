@@ -1,0 +1,1682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi-Business AI Booking Assistant</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css?v=11">
+</head>
+<body class="black-theme">
+
+  <!-- ========================================================================== -->
+  <!-- LOGIN & REGISTRATION OVERLAY MODAL -->
+  <!-- ========================================================================== -->
+  <div id="loginModal" class="modal-overlay open" style="z-index: 99999;">
+    <div class="login-card card" style="max-width: 480px; width: 90vw;">
+      <div class="login-header">
+        <div class="brand-icon-lg">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </div>
+        <h2>AI Booking Assistant</h2>
+        <p>Multi-Business Booking & Management Platform</p>
+      </div>
+
+      <!-- AUTH MODE SWITCH TABS -->
+      <div class="auth-tabs" style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+        <button type="button" class="btn btn-sm btn-primary" id="tabBtnLogin" onclick="switchAuthTab('login')" style="flex:1;">
+          <i class="fa-solid fa-right-to-bracket"></i> Sign In
+        </button>
+        <button type="button" class="btn btn-sm btn-glass" id="tabBtnRegister" onclick="switchAuthTab('register')" style="flex:1;">
+          <i class="fa-solid fa-store"></i> Register as Owner
+        </button>
+      </div>
+
+      <!-- SIGN IN FORM (FOR EXISTING USERS) -->
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="loginUsername"><i class="fa-solid fa-user"></i> Username or Mobile Number</label>
+          <input type="text" id="loginUsername" required placeholder="Enter your username or mobile number...">
+        </div>
+
+        <div class="form-group">
+          <label for="loginPassword"><i class="fa-solid fa-lock"></i> Password</label>
+          <input type="password" id="loginPassword" required placeholder="Enter your password...">
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 15px;">
+          <i class="fa-solid fa-right-to-bracket"></i> Sign In
+        </button>
+      </form>
+
+      <!-- REGISTRATION FORM (FOR BUSINESS OWNERS) -->
+      <form id="registerForm" style="display: none;">
+        <div class="form-group">
+          <label for="regUsername"><i class="fa-solid fa-user"></i> Owner Full Name / Username</label>
+          <input type="text" id="regUsername" required placeholder="e.g. Rahul Sharma">
+        </div>
+
+        <div class="form-group">
+          <label for="regPhone"><i class="fa-solid fa-phone"></i> Mobile Number</label>
+          <input type="tel" id="regPhone" required placeholder="e.g. 9876543210">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="regPassword"><i class="fa-solid fa-lock"></i> Password</label>
+            <input type="password" id="regPassword" required placeholder="Create password...">
+          </div>
+
+          <div class="form-group">
+            <label for="regConfirmPassword"><i class="fa-solid fa-shield-halved"></i> Confirm</label>
+            <input type="password" id="regConfirmPassword" required placeholder="Re-enter password...">
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 15px; background: linear-gradient(135deg, #10b981, #059669);">
+          <i class="fa-solid fa-store"></i> Register as Business Owner
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================== -->
+  <!-- MAIN APPLICATION LAYOUT -->
+  <!-- ========================================================================== -->
+  <div class="app-layout">
+    
+    <!-- SIDEBAR NAVIGATION -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </div>
+        <div class="brand-text">
+          <h2>Booking<span>AI</span></h2>
+          <p id="appRoleSub">Generic Multi-Business</p>
+        </div>
+      </div>
+
+      <!-- NAVIGATION FOR USER (CUSTOMER) ROLE -->
+      <nav class="nav-menu" id="userNavMenu">
+        <button class="nav-item active" onclick="showSection('customerBookingPage'); openBookModalForUser();">
+          <i class="fa-solid fa-calendar-plus"></i>
+          <span>Book Appointment</span>
+        </button>
+        <button class="nav-item" onclick="showSection('customerServicesView')">
+          <i class="fa-solid fa-list-check"></i>
+          <span>Services Catalog</span>
+        </button>
+        <button class="nav-item" onclick="showSection('assistant')">
+          <i class="fa-solid fa-robot"></i>
+          <span>AI Assistant</span>
+          <span class="badge pulse">Live</span>
+        </button>
+        <button class="nav-item" onclick="openUserProfileModal()">
+          <i class="fa-solid fa-id-card"></i>
+          <span>My Profile & History</span>
+        </button>
+      </nav>
+
+      <!-- NAVIGATION FOR OWNER ROLE -->
+      <nav class="nav-menu" id="ownerNavMenu" style="display: none;">
+        <button class="nav-item active" onclick="showOwnerTab('ownerOverview')">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>Business Overview</span>
+        </button>
+        <button class="nav-item" onclick="openDocumentSetupModal()" style="background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(168,85,247,0.2)); border: 1px solid rgba(168,85,247,0.4);">
+          <i class="fa-solid fa-wand-magic-sparkles" style="color: #a855f7;"></i>
+          <span>AI Document Setup</span>
+          <span class="badge" style="background:#8b5cf6;">Auto</span>
+        </button>
+        <button class="nav-item" onclick="showOwnerTab('ownerBusinessInfo')">
+          <i class="fa-solid fa-building"></i>
+          <span>Business Details</span>
+        </button>
+        <button class="nav-item" onclick="showOwnerTab('ownerServices')">
+          <i class="fa-solid fa-concierge-bell" id="ownerNavServicesIcon"></i>
+          <span id="ownerNavServicesText">Services</span>
+        </button>
+        <button class="nav-item" onclick="showOwnerTab('ownerStaff')">
+          <i class="fa-solid fa-user-doctor" id="ownerNavStaffIcon"></i>
+          <span id="ownerNavStaffText">Staff / Doctors</span>
+        </button>
+        <button class="nav-item" onclick="showOwnerTab('ownerHoursRules')">
+          <i class="fa-solid fa-clock"></i>
+          <span>Hours & Rules</span>
+        </button>
+        <button class="nav-item" onclick="showOwnerTab('ownerDocuments')">
+          <i class="fa-solid fa-folder-open"></i>
+          <span>Business Documents</span>
+        </button>
+        <button class="nav-item" onclick="showOwnerTab('ownerCustomers')">
+          <i class="fa-solid fa-users" id="ownerNavCustomersIcon"></i>
+          <span id="ownerNavCustomersText">Customers</span>
+        </button>
+        <button class="nav-item" onclick="showOwnerTab('ownerAppointments')">
+          <i class="fa-solid fa-calendar-check" id="ownerNavApptsIcon"></i>
+          <span id="ownerNavApptsText">Appointments</span>
+        </button>
+        <button class="nav-item" onclick="showOwnerTab('ownerAIChat')">
+          <i class="fa-solid fa-robot"></i>
+          <span>Owner AI Assistant</span>
+          <span class="badge pulse">AI</span>
+        </button>
+      </nav>
+
+      <!-- NAVIGATION FOR SUPERADMIN ROLE -->
+      <nav class="nav-menu" id="superadminNavMenu" style="display: none;">
+        <button class="nav-item active" onclick="showSuperadminTab('saOverview')">
+          <i class="fa-solid fa-crown"></i>
+          <span>Global Metrics</span>
+        </button>
+        <button class="nav-item" onclick="showSuperadminTab('saUsers')">
+          <i class="fa-solid fa-users-gear"></i>
+          <span>All Registered Users</span>
+        </button>
+        <button class="nav-item" onclick="showSuperadminTab('saBusinesses')">
+          <i class="fa-solid fa-building-user"></i>
+          <span>All Businesses</span>
+        </button>
+        <button class="nav-item" onclick="showSuperadminTab('saCustomers')">
+          <i class="fa-solid fa-address-book"></i>
+          <span>All Customer Directory</span>
+        </button>
+        <button class="nav-item" onclick="showSuperadminTab('saAppointments')">
+          <i class="fa-solid fa-calendar-days"></i>
+          <span>Master Appointments</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="system-status">
+          <div class="status-dot"></div>
+          <span id="systemStatusText">Multi-Tenant System Online</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="main-content">
+
+      <!-- GLOBAL WEBPAGE AMBIENT BACKDROP: VIBRANT THEMED PHOTOGRAPHY, COLORFUL MESH & GLOWING LOGO CREST -->
+      <div class="webpage-ambient-backdrop" id="webpageAmbientBackdrop">
+        <div class="webpage-bg-gradient-mesh" id="webpageBgGradientMesh"></div>
+        <div class="webpage-bg-photo-layer" id="webpageBgPhotoLayer" style="background-image: url('https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1600&q=80');"></div>
+        <div class="webpage-bg-overlay-tint" id="webpageBgOverlayTint"></div>
+        <div class="webpage-bg-watermark-container" id="webpageBgWatermarkContainer">
+          <div class="webpage-bg-watermark-logo" id="webpageBgWatermarkLogo"></div>
+        </div>
+      </div>
+
+      <!-- TOP HEADER -->
+      <header class="top-header">
+        <div class="header-left">
+          <h1 id="page-title">Customer Booking Hub</h1>
+          <p class="subtitle" id="page-subtitle">Book appointments, view services, or interact with AI</p>
+        </div>
+
+        <div class="header-right">
+          <!-- Active Business Context Dropdown (User Mode) -->
+          <div class="customer-select-wrapper" id="headerBizSelectWrapper" style="margin-right: 10px;">
+            <i class="fa-solid fa-building"></i>
+            <select id="globalBusinessSelect" onchange="onBusinessSelectChange(this.value)" class="select-customer">
+              <option value="">🏢 Select Business</option>
+            </select>
+          </div>
+
+          <!-- Test Mode Banner / Switch for Owner -->
+          <button class="btn btn-primary" id="btnTestCustomerPage" onclick="toggleOwnerCustomerTestingMode()" style="display:none; background: linear-gradient(135deg, #10b981, #059669);">
+            <i class="fa-solid fa-eye"></i> Open Customer Booking Page
+          </button>
+
+          <!-- Book Appointment Button for Customers / Quick Booking -->
+          <button class="btn btn-primary" id="btnHeaderBookAppt" onclick="openBookModalForUser()" style="display:inline-flex; background: linear-gradient(135deg, #0ea5e9, #0284c7);">
+            <i class="fa-solid fa-calendar-plus"></i> Book Appointment
+          </button>
+
+          <button class="btn btn-call-mode" id="btn-start-voice-call-header">
+            <i class="fa-solid fa-phone"></i> Voice Call AI
+          </button>
+
+          <!-- User/Owner Profile Chip -->
+          <div class="user-profile" onclick="handleProfileHeaderClick()">
+            <img id="headerUserAvatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=User" alt="User Avatar" class="profile-avatar">
+            <div class="profile-info">
+              <span class="name" id="headerUserName">Guest</span>
+              <span class="role" id="headerUserRole">User</span>
+            </div>
+          </div>
+
+          <button class="btn btn-glass btn-sm" onclick="logoutUser()" title="Logout / Switch Account">
+            <i class="fa-solid fa-right-from-bracket"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- OWNER TESTING BANNER (Visible when owner tests customer view) -->
+      <div id="ownerTestNoticeBanner" class="alert-banner" style="display:none;">
+        <i class="fa-solid fa-vial"></i>
+        <span>Owner Preview Mode: Testing Customer Booking Experience for <strong id="testBannerBizName">Your Business</strong></span>
+        <button class="btn btn-sm btn-glass" onclick="toggleOwnerCustomerTestingMode()">Return to Owner Dashboard</button>
+      </div>
+
+      <!-- ========================================================================== -->
+      <!-- SECTION: CUSTOMER BOOKING PAGE (USER VIEW) -->
+      <!-- ========================================================================== -->
+      <section id="customerBookingPage" class="section active-section">
+        
+        <!-- DYNAMIC BUSINESS SHOWCASE HERO -->
+        <div class="hero-business-showcase" id="customerHeroShowcase">
+          <!-- Themed Background Cover -->
+          <div class="hero-cover-bg" id="heroCoverBg" style="background-image: url('https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1600&q=80');"></div>
+          <div class="hero-cover-overlay"></div>
+
+          <div class="hero-showcase-content">
+            <!-- Left: Brand Identity & Quick CTAs -->
+            <div class="hero-biz-identity-card">
+              <div class="hero-brand-top">
+                <div class="hero-biz-logo-badge" id="heroBizLogoContainer">
+                  <!-- Injected dynamically based on business category -->
+                  <i class="fa-solid fa-sparkles" style="font-size: 32px; color: var(--biz-primary);"></i>
+                </div>
+                <div class="hero-biz-header-text">
+                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap;">
+                    <span class="category-tag-badge" id="heroBizCategoryBadge"><i class="fa-solid fa-tag"></i> Services</span>
+                    <span class="verified-tag" id="heroBizVerifiedChip"><i class="fa-solid fa-circle-check"></i> Verified Business</span>
+                    <span class="status-badge open" id="heroBizStatusChip" style="font-size: 11px; padding: 2px 8px;">
+                      <span class="status-badge-dot"></span> <span id="heroBizStatusText">Open Today</span>
+                    </span>
+                  </div>
+                  <h1 id="heroBizNameHeader">Select a Business to Start Booking</h1>
+                </div>
+              </div>
+
+              <p class="hero-biz-description" id="heroBizDesc">
+                Select available dates, pick your service, choose your preferred staff/doctor, or let AI book for you.
+              </p>
+
+              <!-- Dynamic Meta Strip -->
+              <div class="hero-meta-strip">
+                <div class="hero-meta-pill" id="heroPillHours">
+                  <i class="fa-solid fa-clock"></i>
+                  <span id="heroBizHours">10:00 AM - 08:00 PM</span>
+                </div>
+                <div class="hero-meta-pill" id="heroPillLocation">
+                  <i class="fa-solid fa-location-dot"></i>
+                  <span id="heroBizLocation">Prime Central Location</span>
+                </div>
+                <div class="hero-meta-pill" id="heroPillPhone">
+                  <i class="fa-solid fa-phone"></i>
+                  <a id="heroBizPhone" href="#" style="color: inherit; text-decoration: none;">Contact Business</a>
+                </div>
+              </div>
+
+              <div class="quick-chips">
+                <button class="chip" onclick="openBookModalForUser()">
+                  <i class="fa-solid fa-calendar-plus"></i> Book Appointment
+                </button>
+                <button class="chip" onclick="quickPrompt('Check Available Slots')">
+                  <i class="fa-solid fa-clock"></i> Check Slots
+                </button>
+                <button class="chip" onclick="quickPrompt('What services do you offer?')">
+                  <i class="fa-solid fa-list"></i> View Services
+                </button>
+                <button class="chip" onclick="openUserProfileModal()">
+                  <i class="fa-solid fa-id-card"></i> My Booking History
+                </button>
+              </div>
+
+              <div class="hero-actions">
+                <button class="btn btn-primary" onclick="openBookModalForUser()">
+                  <i class="fa-solid fa-plus"></i> Book Appointment Now
+                </button>
+                <button class="btn btn-call-mode" id="btn-start-voice-call-hero">
+                  <i class="fa-solid fa-phone"></i> Live Voice Call
+                </button>
+              </div>
+            </div>
+
+            <!-- Right: Interactive AI Booking Concierge Co-pilot -->
+            <div class="hero-ai-copilot-box">
+              <span class="ai-copilot-badge">● AI BOOKING COPILOT</span>
+              <div class="ai-avatar-glow">
+                <svg class="mini-robot-svg" viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg">
+                  <ellipse cx="100" cy="225" rx="45" ry="8" class="robot-shadow" />
+                  <g class="robot-body">
+                    <rect x="55" y="110" width="90" height="75" rx="20" fill="url(#bodyGrad)" stroke="#60a5fa" stroke-width="2.5" />
+                    <circle cx="100" cy="148" r="16" fill="#05070d" stroke="#38bdf8" stroke-width="2" />
+                    <circle cx="100" cy="148" r="9" class="arc-core" fill="#00f2fe" />
+                    <rect x="30" y="120" width="18" height="45" rx="9" fill="#94a3b8" class="arm left-arm" />
+                    <rect x="152" y="120" width="18" height="45" rx="9" fill="#94a3b8" class="arm right-arm" />
+                  </g>
+                  <g class="robot-head-group">
+                    <line x1="100" y1="45" x2="100" y2="22" stroke="#94a3b8" stroke-width="4" stroke-linecap="round" />
+                    <circle cx="100" cy="18" r="8" class="antenna-orb" fill="#00f2fe" />
+                    <rect x="45" y="45" width="110" height="70" rx="24" fill="#1e293b" stroke="#64748b" stroke-width="2" />
+                    <rect x="55" y="55" width="90" height="50" rx="16" fill="#05070d" />
+                    <g class="eyes-group">
+                      <circle cx="78" cy="80" r="10" class="eye left-eye" fill="#00f2fe" />
+                      <circle cx="78" cy="80" r="4" fill="#ffffff" />
+                      <circle cx="122" cy="80" r="10" class="eye right-eye" fill="#00f2fe" />
+                      <circle cx="122" cy="80" r="4" fill="#ffffff" />
+                    </g>
+                  </g>
+                </svg>
+              </div>
+              <p class="ai-copilot-text">Book with <strong id="heroBizTitle">Business</strong> or chat with AI verbally!</p>
+              <button class="btn btn-sm btn-glass btn-block" onclick="showSection('assistant'); quickPrompt('Help me book an appointment');">
+                <i class="fa-solid fa-comments"></i> Chat with AI
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SERVICES SHOWCASE GRID -->
+        <div class="card" style="margin-top: 20px;">
+          <div class="card-header">
+            <div>
+              <h2 id="customerServicesShowcaseTitle"><i class="fa-solid fa-concierge-bell" id="customerServicesShowcaseIcon"></i> Available Services</h2>
+              <p id="customerServicesShowcaseDesc">Explore service durations, prices, and deposit requirements</p>
+            </div>
+          </div>
+          <div class="services-grid" id="customerServicesGrid">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- STAFF & DOCTORS SHOWCASE -->
+        <div class="card" style="margin-top: 20px;">
+          <div class="card-header">
+            <div>
+              <h2 id="customerStaffShowcaseTitle"><i class="fa-solid fa-user-doctor" id="customerStaffShowcaseIcon"></i> Available Staff & Doctors</h2>
+              <p id="customerStaffShowcaseDesc">Specialists and working schedules</p>
+            </div>
+          </div>
+          <div class="staff-grid" id="customerStaffGrid">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ========================================================================== -->
+      <!-- SECTION: CUSTOMER SERVICES CATALOG VIEW -->
+      <!-- ========================================================================== -->
+      <section id="customerServicesView" class="section">
+        <div class="section-title">
+          <div>
+            <h2><i class="fa-solid fa-list-check"></i> Complete Services Catalog</h2>
+            <p>Select services and check availability</p>
+          </div>
+        </div>
+        <div class="services-grid" id="fullServicesCatalogGrid">
+          <!-- Dynamically populated -->
+        </div>
+      </section>
+
+      <!-- ========================================================================== -->
+      <!-- SECTION: AI ASSISTANT CHAT WORKSPACE -->
+      <!-- ========================================================================== -->
+      <section id="assistant" class="section">
+        <div class="section-title">
+          <div>
+            <h2>🤖 AI Booking Assistant & Voice Call Workspace</h2>
+            <p>Speak or chat with your smart assistant to book appointments verbally</p>
+          </div>
+          <div class="assistant-controls">
+            <button class="btn btn-call-mode btn-sm" id="btn-start-voice-call-workspace">
+              <i class="fa-solid fa-phone"></i> Start Live Voice Call
+            </button>
+            <div class="ai-status">
+              <span class="status-dot"></span> AI Online
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-container card">
+          <div id="chatMessages" class="chat-messages">
+            <div class="chat-welcome">
+              <div class="welcome-orb"><i class="fa-solid fa-robot"></i></div>
+              <div class="welcome-copy">
+                <span class="welcome-badge">● AI VOICE ONLINE</span>
+                <h3>Hello! I'm your Booking AI Assistant 👋</h3>
+                <p>Click the 🎙️ Microphone button below to speak directly or tap 📞 Voice Call for hands-free booking!</p>
+              </div>
+            </div>
+          </div>
+
+          <div id="chatSuggestions" class="chat-suggestions"></div>
+
+          <div class="chat-input-container">
+            <button class="btn-mic" id="btn-mic-main" title="Click to Speak / Voice Input">
+              <i class="fa-solid fa-microphone"></i>
+            </button>
+            <input type="text" id="chatInput" placeholder="Type or click 🎙️ to speak your message..." autocomplete="off">
+            <button id="sendChatButton" class="btn btn-primary" onclick="sendChatMessage()">
+              <i class="fa-solid fa-paper-plane"></i> Send
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================================== -->
+      <!-- SECTION: OWNER DASHBOARD VIEW (OWNER ROLE) -->
+      <!-- ========================================================================== -->
+      <section id="ownerDashboardView" class="section">
+        
+        <!-- OWNER OVERVIEW TAB -->
+        <div id="ownerOverview" class="owner-tab active-owner-tab">
+          <!-- FAST-TRACK AI DOCUMENT SETUP BANNER -->
+          <div class="alert-banner" style="background: linear-gradient(135deg, rgba(99,102,241,0.22) 0%, rgba(168,85,247,0.22) 100%); border: 1px solid rgba(168,85,247,0.4); padding: 18px 24px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; border-radius: 16px;">
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, #6366f1, #a855f7); display: flex; align-items: center; justify-content: center; font-size: 22px; color: white; flex-shrink: 0;">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+              </div>
+              <div>
+                <h3 style="color: #f8fafc; font-size: 16px; margin-bottom: 4px; font-weight: 700;">Zero-Effort AI Business Setup from Documents</h3>
+                <p style="color: #cbd5e1; font-size: 13px; margin: 0;">Upload your service menus, price lists, or brochures (PDF, DOCX, CSV, Excel, TXT, Images) to auto-configure services, hours, rules & AI bot!</p>
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="openDocumentSetupModal()" style="background: linear-gradient(135deg, #6366f1, #8b5cf6); border: none; white-space: nowrap; font-weight: 600; padding: 10px 18px; margin-left: 12px;">
+              <i class="fa-solid fa-cloud-arrow-up"></i> Setup with Documents
+            </button>
+          </div>
+
+          <!-- OWNER BUSINESS BRANDING & THEME HERO CARD -->
+          <div class="owner-biz-hero-card" id="ownerBizHeroCard">
+            <div class="owner-biz-hero-bg" id="ownerBizHeroBg" style="background-image: url('https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1600&q=80');"></div>
+            <div class="owner-biz-hero-overlay"></div>
+            <div class="owner-biz-hero-inner">
+              <div class="owner-biz-details">
+                <div class="owner-biz-logo-badge" id="ownerBizLogoBadge">
+                  <i class="fa-solid fa-building" style="font-size: 28px; color: var(--biz-primary);"></i>
+                </div>
+                <div>
+                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap;">
+                    <span class="category-tag-badge" id="ownerBizCategoryPill"><i class="fa-solid fa-tags"></i> Business Category</span>
+                    <span class="verified-tag"><i class="fa-solid fa-circle-check"></i> Active Portal</span>
+                  </div>
+                  <h2 id="ownerBizName" style="font-size: 24px; font-weight: 800; color: #ffffff; margin: 0;">My Business Dashboard</h2>
+                  <p id="ownerBizSubDetails" style="color: #cbd5e1; font-size: 13px; margin: 4px 0 0 0;">Operating Hours: 10:00 AM - 08:00 PM • Owner Managed</p>
+                </div>
+              </div>
+              <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button class="btn btn-sm btn-glass" onclick="showOwnerTab('ownerBusinessInfo')">
+                  <i class="fa-solid fa-pen-to-square"></i> Edit Details
+                </button>
+                <button class="btn btn-sm btn-primary" onclick="toggleOwnerCustomerTestingMode()">
+                  <i class="fa-solid fa-eye"></i> View Customer Experience
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-icon blue">
+                <i class="fa-solid fa-calendar-day" id="ownerMetricIconTodayAppts"></i>
+              </div>
+              <div class="metric-data">
+                <span class="metric-title" id="ownerMetricTitleTodayAppts">Today's Appointments</span>
+                <h2 id="ownerTodayApptCount">0</h2>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon purple">
+                <i class="fa-solid fa-calendar-check" id="ownerMetricIconTotalAppts"></i>
+              </div>
+              <div class="metric-data">
+                <span class="metric-title" id="ownerMetricTitleTotalAppts">Total Appointments</span>
+                <h2 id="ownerTotalApptCount">0</h2>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon green">
+                <i class="fa-solid fa-concierge-bell" id="ownerMetricIconServices"></i>
+              </div>
+              <div class="metric-data">
+                <span class="metric-title" id="ownerMetricTitleServices">Services Offered</span>
+                <h2 id="ownerServicesCount">0</h2>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon amber">
+                <i class="fa-solid fa-user-doctor" id="ownerMetricIconStaff"></i>
+              </div>
+              <div class="metric-data">
+                <span class="metric-title" id="ownerMetricTitleStaff">Active Staff / Doctors</span>
+                <h2 id="ownerStaffCount">0</h2>
+              </div>
+            </div>
+          </div>
+
+          <!-- PUBLIC STOREFRONT & BOOKING LINK CARD -->
+          <div class="card" style="margin-top: 20px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.75) 100%); border: 1px solid var(--card-border-glow); padding: 20px 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+              <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, #10b981, #06b6d4); display: flex; align-items: center; justify-content: center; font-size: 22px; color: white; flex-shrink: 0; box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);">
+                  <i class="fa-solid fa-globe"></i>
+                </div>
+                <div>
+                  <h3 style="color: #fff; font-size: 16px; margin-bottom: 4px; font-weight: 700;">Customer Public Booking Link & Storefront</h3>
+                  <p style="color: #94a3b8; font-size: 13px; margin: 0;">Share this direct link or QR code with customers on WhatsApp, Instagram, or print on your store counter.</p>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 6px 12px;">
+                  <span id="ownerPublicUrlText" style="font-size: 13px; color: var(--primary-cyan); font-family: monospace;">Loading link...</span>
+                  <button type="button" class="btn btn-sm btn-glass" onclick="copyOwnerPublicLink()" style="margin-left: 10px; padding: 4px 10px;" title="Copy to clipboard">
+                    <i class="fa-solid fa-copy"></i>
+                  </button>
+                </div>
+                <a id="ownerOpenPublicPageBtn" href="#" target="_blank" class="btn btn-sm btn-primary" style="background: linear-gradient(135deg, #00f2fe, #3b82f6);">
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Page
+                </a>
+                <button type="button" class="btn btn-sm btn-glass" onclick="openQrModal()" style="border-color: rgba(255,255,255,0.2);">
+                  <i class="fa-solid fa-qrcode"></i> QR Code
+                </button>
+                <a id="ownerWhatsAppShareBtn" href="#" target="_blank" class="btn btn-sm" style="background: #25D366; color: white; border: none; font-weight: 600;">
+                  <i class="fa-brands fa-whatsapp"></i> Share
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- AUTOMATED REMINDERS & NOTIFICATION MANAGEMENT WIDGET -->
+          <div class="reminders-control-card" id="ownerRemindersControlCard">
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="width: 46px; height: 46px; border-radius: 14px; background: rgba(245, 158, 11, 0.2); border: 1px solid #f59e0b; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #f59e0b; flex-shrink: 0;">
+                <i class="fa-solid fa-bell"></i>
+              </div>
+              <div>
+                <h3 style="color: #ffffff; font-size: 16px; font-weight: 700; margin: 0 0 4px 0;">Automated Customer Reminders</h3>
+                <p style="color: #94a3b8; font-size: 12.5px; margin: 0;">Scheduled 24h, 2h, 1h & 10m WhatsApp/SMS notification triggers.</p>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+              <div class="reminders-stats-row">
+                <div class="reminders-stat-pill" title="Reminders successfully dispatched">
+                  <i class="fa-solid fa-circle-check" style="color: #10b981;"></i>
+                  <span>Sent: <strong id="ownerReminderSentCount">0</strong></span>
+                </div>
+                <div class="reminders-stat-pill" title="Upcoming pending reminders in queue">
+                  <i class="fa-solid fa-hourglass-half" style="color: #f59e0b;"></i>
+                  <span>Pending: <strong id="ownerReminderPendingCount">0</strong></span>
+                </div>
+              </div>
+
+              <button type="button" class="btn btn-sm btn-danger-glow" id="btnDeletePendingReminders" onclick="deleteOwnerPendingReminders()" title="Clear all unsent scheduled reminders from queue">
+                <i class="fa-solid fa-trash-can"></i> Delete All Pending Reminders
+              </button>
+            </div>
+          </div>
+
+          <!-- TODAY'S APPOINTMENTS TABLE -->
+          <div class="card card-table" style="margin-top: 20px;">
+            <div class="card-header">
+              <div>
+                <h2><i class="fa-solid fa-calendar-day"></i> Today's Appointments</h2>
+                <p>Scheduled appointments for today</p>
+              </div>
+              <button class="btn btn-sm btn-glass" onclick="loadOwnerDashboard()">
+                <i class="fa-solid fa-rotate"></i> Refresh
+              </button>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Customer</th>
+                    <th>Phone</th>
+                    <th>Service</th>
+                    <th>Time</th>
+                    <th>Venue</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="ownerTodayApptsTable">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- OWNER BUSINESS DETAILS TAB -->
+        <div id="ownerBusinessInfo" class="owner-tab" style="display:none;">
+          <div class="card">
+            <div class="card-header">
+              <h2><i class="fa-solid fa-building"></i> Business Profile & Information</h2>
+            </div>
+            <form id="ownerBusinessForm">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="obName"><i class="fa-solid fa-store"></i> Business Name</label>
+                  <input type="text" id="obName" required placeholder="e.g. HealthPlus Clinic">
+                </div>
+                <div class="form-group">
+                  <label for="obCategory"><i class="fa-solid fa-tags"></i> Category / Industry</label>
+                  <input type="text" id="obCategory" required placeholder="e.g. Salon & Spa, Medical Clinic...">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="obDescription" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <span><i class="fa-solid fa-file-lines"></i> Business Description</span>
+                  <span style="font-size: 11px; font-weight: normal; color: #94a3b8;"><i class="fa-solid fa-circle-info"></i> Overview of business & services</span>
+                </label>
+                <textarea id="obDescription" rows="3" placeholder="Briefly describe your business offerings..."></textarea>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Contact Phone</label>
+                  <input type="text" id="obPhone" required>
+                </div>
+                <div class="form-group">
+                  <label>Location / Address</label>
+                  <input type="text" id="obLocation">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Currency</label>
+                  <input type="text" id="obCurrency" placeholder="INR">
+                </div>
+                <div class="form-group">
+                  <label>Timezone</label>
+                  <input type="text" id="obTimezone" placeholder="Asia/Kolkata">
+                </div>
+                <div class="form-group">
+                  <label>Operating Hours</label>
+                  <input type="text" id="obOperatingHours" placeholder="10:00 AM - 08:00 PM">
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Business Info</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- OWNER SERVICES MANAGEMENT TAB -->
+        <div id="ownerServices" class="owner-tab" style="display:none;">
+          <div class="card card-table">
+            <div class="card-header">
+              <div>
+                <h2 id="ownerServicesHeaderTitle"><i id="ownerServicesHeaderIcon" class="fa-solid fa-concierge-bell"></i> Services Management</h2>
+                <p id="ownerServicesHeaderDesc">Add, edit or remove business services</p>
+              </div>
+              <button class="btn btn-primary" onclick="openAddServiceModal()">
+                <i class="fa-solid fa-plus"></i> <span id="btnOwnerAddServiceText">+ Add New Service</span>
+              </button>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Service Name</th>
+                    <th>Category</th>
+                    <th>Duration</th>
+                    <th>Price</th>
+                    <th>Deposit %</th>
+                    <th>Resource Required</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="ownerServicesTable">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- OWNER STAFF MANAGEMENT TAB -->
+        <div id="ownerStaff" class="owner-tab" style="display:none;">
+          <div class="card card-table">
+            <div class="card-header">
+              <div>
+                <h2 id="ownerStaffHeaderTitle"><i id="ownerStaffHeaderIcon" class="fa-solid fa-user-doctor"></i> Staff & Doctors Management</h2>
+                <p id="ownerStaffHeaderDesc">Configure staff names, specializations, and shifts</p>
+              </div>
+              <button class="btn btn-primary" onclick="openAddStaffModal()">
+                <i class="fa-solid fa-user-plus"></i> <span id="btnOwnerAddStaffText">+ Add Staff/Doctor</span>
+              </button>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Role / Specialization</th>
+                    <th>Working Days</th>
+                    <th>Working Hours</th>
+                    <th>Break Time</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="ownerStaffTable">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- OWNER HOURS & RULES TAB -->
+        <div id="ownerHoursRules" class="owner-tab" style="display:none;">
+          <!-- 7-DAY OPERATING HOURS SCHEDULE -->
+          <div class="card" style="margin-bottom: 24px;">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h2><i class="fa-solid fa-clock"></i> Weekly Operating Hours</h2>
+                <p>Customize opening & closing hours for each day of the week</p>
+              </div>
+              <button class="btn btn-primary" onclick="saveOwnerWeeklyHours()">
+                <i class="fa-solid fa-floppy-disk"></i> Save Weekly Hours
+              </button>
+            </div>
+            <div id="weeklyHoursContainer" style="margin-top: 15px;">
+              <!-- Dynamically populated with Monday-Sunday interactive rows -->
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h2><i class="fa-solid fa-sliders"></i> Booking Rules & Policies</h2>
+            </div>
+            <form id="ownerRulesForm">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Minimum Notice (Hours)</label>
+                  <input type="number" id="ruleMinNotice" value="2">
+                </div>
+                <div class="form-group">
+                  <label>Max Advance Booking (Days)</label>
+                  <input type="number" id="ruleMaxAdvance" value="30">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Booking Buffer (Minutes)</label>
+                  <input type="number" id="ruleBuffer" value="15">
+                </div>
+                <div class="form-group">
+                  <label>Max Group Size</label>
+                  <input type="number" id="ruleMaxGroup" value="10">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Cancellation Rules</label>
+                <input type="text" id="ruleCancellation" placeholder="Free cancellation up to 2 hours before appointment">
+              </div>
+              <div class="form-group">
+                <label>Rescheduling Rules</label>
+                <input type="text" id="ruleReschedule" placeholder="Reschedule up to 2 hours before appointment">
+              </div>
+              <div class="form-group">
+                <label>Late Arrival Grace Period</label>
+                <input type="text" id="ruleLateArrival" placeholder="15-minute grace period">
+              </div>
+              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Update Rules</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- OWNER BUSINESS DOCUMENTS TAB -->
+        <div id="ownerDocuments" class="owner-tab" style="display:none;">
+          <div class="card card-table">
+            <div class="card-header">
+              <div>
+                <h2><i class="fa-solid fa-folder-open"></i> Business Knowledge Documents</h2>
+                <p>All uploaded menus, catalogs, price sheets and brochures securely indexed for AI</p>
+              </div>
+              <button class="btn btn-primary" onclick="openDocumentSetupModal()">
+                <i class="fa-solid fa-cloud-arrow-up"></i> Upload & Process Documents
+              </button>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Document Name</th>
+                    <th>Format</th>
+                    <th>Size</th>
+                    <th>Status</th>
+                    <th>Uploaded At</th>
+                  </tr>
+                </thead>
+                <tbody id="ownerDocumentsTable">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- OWNER CUSTOMERS TAB -->
+        <div id="ownerCustomers" class="owner-tab" style="display:none;">
+          <div class="card card-table">
+            <div class="card-header">
+              <h2 id="ownerCustomersHeaderTitle"><i id="ownerCustomersHeaderIcon" class="fa-solid fa-users"></i> Business Customer Directory</h2>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th id="thOwnerCustName">Customer Name</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Total Bookings</th>
+                    <th>Last Activity</th>
+                    <th>Registered</th>
+                  </tr>
+                </thead>
+                <tbody id="ownerCustomersTable">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- OWNER APPOINTMENTS TAB -->
+        <div id="ownerAppointments" class="owner-tab" style="display:none;">
+          <div class="card card-table">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+              <h2 id="ownerApptsHeaderTitle"><i class="fa-solid fa-calendar-check"></i> Master Appointments</h2>
+              <button class="btn btn-sm btn-primary" onclick="openBookModalForUser()" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+                <i class="fa-solid fa-plus"></i> Book Appointment
+              </button>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th id="thOwnerApptCustName">Customer</th>
+                    <th>Phone</th>
+                    <th>Service</th>
+                    <th>Staff</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="ownerAllApptsTable">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- OWNER AI ASSISTANT CHAT TAB -->
+        <div id="ownerAIChat" class="owner-tab" style="display:none;">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2>🤖 Owner AI Business Assistant</h2>
+                <p>Manage services, staff, working hours, and get business insights using natural language</p>
+              </div>
+            </div>
+
+            <div class="chat-container">
+              <div id="ownerChatMessages" class="chat-messages">
+                <div class="chat-welcome">
+                  <div class="welcome-orb"><i class="fa-solid fa-robot"></i></div>
+                  <div class="welcome-copy">
+                    <span class="welcome-badge">● OWNER AI ENGINE ACTIVE</span>
+                    <h3>Welcome Owner! How can I assist your business today?</h3>
+                    <p>Try asking: <em>"Add a haircut service for ₹400 and 30 minutes"</em>, <em>"Show me today's appointments"</em>, or <em>"What are my business hours?"</em></p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="chat-input-container" style="margin-top: 15px;">
+                <input type="text" id="ownerChatInput" placeholder="Type your owner request or command..." autocomplete="off">
+                <button class="btn btn-primary" onclick="sendOwnerChatMessage()">
+                  <i class="fa-solid fa-paper-plane"></i> Send Command
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ========================================================================== -->
+      <!-- SECTION: SUPERADMIN DASHBOARD VIEW (SUPERADMIN ROLE ONLY) -->
+      <!-- ========================================================================== -->
+      <section id="superadminDashboardView" class="section">
+        
+        <!-- SUPERADMIN OVERVIEW TAB -->
+        <div id="saOverview" class="superadmin-tab active-sa-tab">
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-icon blue">
+                <i class="fa-solid fa-users"></i>
+              </div>
+              <div class="metric-data">
+                <span class="metric-title">Total Users</span>
+                <h2 id="saMetricTotalUsers">0</h2>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon purple">
+                <i class="fa-solid fa-building-user"></i>
+              </div>
+              <div class="metric-data">
+                <span class="metric-title">Business Owners</span>
+                <h2 id="saMetricTotalOwners">0</h2>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon green">
+                <i class="fa-solid fa-building"></i>
+              </div>
+              <div class="metric-data">
+                <span class="metric-title">Registered Businesses</span>
+                <h2 id="saMetricTotalBusinesses">0</h2>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon amber">
+                <i class="fa-solid fa-calendar-check"></i>
+              </div>
+              <div class="metric-data">
+                <span class="metric-title">Master Appointments</span>
+                <h2 id="saMetricTotalAppts">0</h2>
+              </div>
+            </div>
+          </div>
+
+          <!-- RECENT USERS TABLE -->
+          <div class="card card-table" style="margin-top: 20px;">
+            <div class="card-header">
+              <div>
+                <h2><i class="fa-solid fa-users-gear"></i> Recent System Registrations</h2>
+                <p>Latest registered users across all roles</p>
+              </div>
+              <button class="btn btn-sm btn-glass" onclick="loadSuperadminDashboard()">
+                <i class="fa-solid fa-rotate"></i> Refresh Data
+              </button>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Mobile Phone</th>
+                    <th>Role</th>
+                    <th>Business ID</th>
+                    <th>Registered Date</th>
+                  </tr>
+                </thead>
+                <tbody id="saRecentUsersTable">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUPERADMIN ALL USERS TAB -->
+        <div id="saUsers" class="superadmin-tab" style="display:none;">
+          <div class="card card-table">
+            <div class="card-header">
+              <h2><i class="fa-solid fa-users-gear"></i> Master User Accounts Directory</h2>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Mobile Phone</th>
+                    <th>Role</th>
+                    <th>Business Name</th>
+                    <th>Registered At</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="saAllUsersTable">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUPERADMIN ALL BUSINESSES TAB -->
+        <div id="saBusinesses" class="superadmin-tab" style="display:none;">
+          <div class="card card-table">
+            <div class="card-header">
+              <h2><i class="fa-solid fa-building-user"></i> Master Businesses Directory</h2>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Business Name</th>
+                    <th>Category</th>
+                    <th>Owner Name</th>
+                    <th>Phone</th>
+                    <th>Operating Hours</th>
+                    <th>Appointments</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="saAllBusinessesTable">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUPERADMIN ALL CUSTOMERS TAB -->
+        <div id="saCustomers" class="superadmin-tab" style="display:none;">
+          <div class="card card-table">
+            <div class="card-header">
+              <h2><i class="fa-solid fa-address-book"></i> Master Customer Directory</h2>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Business Name</th>
+                    <th>Customer Name</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Appointments</th>
+                    <th>Created At</th>
+                  </tr>
+                </thead>
+                <tbody id="saAllCustomersTable">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUPERADMIN MASTER APPOINTMENTS TAB -->
+        <div id="saAppointments" class="superadmin-tab" style="display:none;">
+          <div class="card card-table">
+            <div class="card-header">
+              <h2><i class="fa-solid fa-calendar-days"></i> System-Wide Master Appointments</h2>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Business</th>
+                    <th>Customer</th>
+                    <th>Phone</th>
+                    <th>Service</th>
+                    <th>Staff</th>
+                    <th>Date & Time</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="saAllAppointmentsTable">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ========================================================================== -->
+  <!-- USER PROFILE MODAL -->
+  <!-- ========================================================================== -->
+  <div id="userProfileModal" class="modal-overlay">
+    <div class="modal-card card" style="max-width: 750px;">
+      <div class="modal-header">
+        <h2><i class="fa-solid fa-id-card"></i> User Profile & Booking History</h2>
+        <button type="button" class="btn-icon" onclick="closeUserProfileModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div id="userProfileContent">
+        <!-- Personal Details Box -->
+        <div class="user-details-card" style="background: rgba(15,23,42,0.8); padding: 15px; border-radius: 12px; border: 1px solid rgba(0,242,254,0.3); margin-bottom: 20px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <h3 id="upUsername" style="color:#00f2fe; margin-bottom:4px;">User Name</h3>
+              <p style="font-size:13px; color:#94a3b8;"><i class="fa-solid fa-phone"></i> Mobile: <span id="upPhone">-</span></p>
+            </div>
+            <span class="badge" id="upRoleBadge" style="font-size:12px;">Customer</span>
+          </div>
+        </div>
+
+        <!-- Tabs for Upcoming vs Past Bookings -->
+        <div class="profile-tabs" style="display:flex; gap:10px; margin-bottom:15px;">
+          <button class="btn btn-sm btn-primary" id="btnUpcomingTab" onclick="switchProfileSubTab('upcoming')">Upcoming Bookings</button>
+          <button class="btn btn-sm btn-glass" id="btnHistoryTab" onclick="switchProfileSubTab('history')">Booking History</button>
+        </div>
+
+        <!-- Upcoming Bookings List -->
+        <div id="userUpcomingSection">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Business</th>
+                  <th>Service</th>
+                  <th>Staff</th>
+                  <th>Date & Time</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="userUpcomingTable">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- History Bookings List -->
+        <div id="userHistorySection" style="display:none;">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Business</th>
+                  <th>Service</th>
+                  <th>Staff</th>
+                  <th>Date & Time</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="userHistoryTable">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================== -->
+  <!-- OWNER BUSINESS ONBOARDING MODAL -->
+  <!-- ========================================================================== -->
+  <div id="businessOnboardModal" class="modal-overlay">
+    <div class="modal-card card" style="max-width: 540px; width: 92vw;">
+      <div class="modal-header">
+        <h2><i class="fa-solid fa-building-circle-check"></i> Onboard Your Business</h2>
+        <button type="button" class="btn-icon" onclick="closeBusinessOnboardModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="businessOnboardForm">
+        <div class="form-group">
+          <label for="obnName"><i class="fa-solid fa-store"></i> Business Name</label>
+          <input type="text" id="obnName" required placeholder="e.g. HealthPlus Clinic, Aura Luxury Spa...">
+        </div>
+        
+        <div class="form-group">
+          <label for="obnCategory"><i class="fa-solid fa-tags"></i> Business Category / Industry</label>
+          <input type="text" id="obnCategory" required placeholder="Type category manually (e.g. Salon & Spa, Dental Clinic, Fitness Gym...)">
+        </div>
+
+        <div class="form-group">
+          <label for="obnDescription" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span><i class="fa-solid fa-file-lines"></i> Business Description</span>
+            <span style="font-size: 11px; font-weight: normal; color: #94a3b8;"><i class="fa-solid fa-circle-info"></i> Overview of your services & specialties</span>
+          </label>
+          <textarea id="obnDescription" rows="3" placeholder="Briefly describe your business offerings, key specialties, customer promises..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="obnPhone"><i class="fa-solid fa-phone"></i> Contact Phone Number</label>
+            <input type="text" id="obnPhone" required placeholder="e.g. 9876543210">
+          </div>
+          <div class="form-group">
+            <label for="obnHours"><i class="fa-solid fa-clock"></i> Operating Hours</label>
+            <input type="text" id="obnHours" placeholder="e.g. 10:00 AM - 08:00 PM">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="obnLocation"><i class="fa-solid fa-location-dot"></i> Location / Full Address</label>
+          <input type="text" id="obnLocation" placeholder="e.g. Central Avenue, Bandra West, Mumbai">
+        </div>
+
+        <div class="form-actions" style="margin-top: 24px;">
+          <button type="button" class="btn btn-glass" onclick="closeBusinessOnboardModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-wand-magic-sparkles"></i> Onboard Business</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================== -->
+  <!-- SERVICE ADD / EDIT MODAL -->
+  <!-- ========================================================================== -->
+  <div id="serviceModal" class="modal-overlay">
+    <div class="modal-card card">
+      <div class="modal-header">
+        <h2 id="serviceModalTitle"><i class="fa-solid fa-plus"></i> Add Service</h2>
+        <button type="button" class="btn-icon" onclick="closeServiceModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="serviceForm">
+        <input type="hidden" id="svcId">
+        <div class="form-group">
+          <label>Service Name</label>
+          <input type="text" id="svcName" required placeholder="e.g. Haircut & Styling">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Price</label>
+            <input type="number" step="0.01" id="svcPrice" required placeholder="400">
+          </div>
+          <div class="form-group">
+            <label>Duration (Minutes)</label>
+            <input type="number" id="svcDuration" required value="30">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Deposit Percentage (%)</label>
+          <input type="number" id="svcDeposit" value="0">
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-glass" onclick="closeServiceModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Service</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================== -->
+  <!-- STAFF ADD / EDIT MODAL -->
+  <!-- ========================================================================== -->
+  <div id="staffModal" class="modal-overlay">
+    <div class="modal-card card">
+      <div class="modal-header">
+        <h2 id="staffModalTitle"><i class="fa-solid fa-user-plus"></i> Add Staff / Doctor</h2>
+        <button type="button" class="btn-icon" onclick="closeStaffModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="staffForm">
+        <input type="hidden" id="stfId">
+        <div class="form-group">
+          <label>Staff / Doctor Name</label>
+          <input type="text" id="stfName" required placeholder="e.g. Priya Sharma">
+        </div>
+        <div class="form-group">
+          <label>Role / Specialization</label>
+          <input type="text" id="stfRole" placeholder="e.g. Senior Hair Stylist / Dentist">
+        </div>
+        <div class="form-group">
+          <label>Working Days (Comma Separated)</label>
+          <input type="text" id="stfDays" value="Monday,Tuesday,Wednesday,Thursday,Friday,Saturday">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Start Time (HH:MM 24h)</label>
+            <input type="text" id="stfStart" value="10:00">
+          </div>
+          <div class="form-group">
+            <label>End Time (HH:MM 24h)</label>
+            <input type="text" id="stfEnd" value="19:00">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-glass" onclick="closeStaffModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Staff Member</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================== -->
+  <!-- USER APPOINTMENT BOOKING MODAL -->
+  <!-- ========================================================================== -->
+  <div id="appointmentModal" class="modal-overlay">
+    <div class="modal-card card">
+      <div class="modal-header">
+        <h2><i class="fa-solid fa-calendar-plus"></i> Book Appointment</h2>
+        <button type="button" class="btn-icon" onclick="closeAppointmentModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="appointmentForm">
+        <div class="form-group" id="appointmentBusinessGroup">
+          <label for="appointmentBusinessSelect">Select Business</label>
+          <select id="appointmentBusinessSelect" onchange="onModalBusinessChange(this.value)" required>
+            <option value="">Select business...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="appointmentServiceSelect">Select Service</label>
+          <select id="appointmentServiceSelect" required>
+            <option value="">Select service...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="appointmentStaffSelect">Select Staff / Doctor (Optional)</label>
+          <select id="appointmentStaffSelect">
+            <option value="">Any Available Staff</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="appointmentCustName"><i class="fa-solid fa-user"></i> Your Full Name</label>
+            <input type="text" id="appointmentCustName" required placeholder="e.g. Rahul Sharma">
+          </div>
+          <div class="form-group">
+            <label for="appointmentCustPhone"><i class="fa-solid fa-phone"></i> Mobile Phone Number</label>
+            <input type="tel" id="appointmentCustPhone" required placeholder="e.g. 9876543210">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="appointmentDate">Date</label>
+            <input type="date" id="appointmentDate" required>
+          </div>
+          <div class="form-group">
+            <label for="appointmentTime">Time Slot</label>
+            <input type="time" id="appointmentTime" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="appointmentVenue">Venue / Branch Location</label>
+          <input type="text" id="appointmentVenue" placeholder="e.g. Main Branch">
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-glass" onclick="closeAppointmentModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Confirm Booking</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- FLOATING MOVABLE CHATBOT WIDGET -->
+  <div class="floating-chat-container" id="floating-chat-container">
+    <div class="chat-window card" id="chat-window">
+      <div class="chat-header" id="chat-header-drag">
+        <div class="chat-title">
+          <div class="mini-robot-icon pulse-glow">
+            <i class="fa-solid fa-robot"></i>
+          </div>
+          <div>
+            <h4>Booking AI Assistant</h4>
+            <span class="online-indicator"><i class="fa-solid fa-circle"></i> Voice & Chat Ready</span>
+          </div>
+        </div>
+        <div class="chat-header-actions">
+          <button class="btn-icon btn-mic-mini" id="btn-mic-floating" title="Speak / Voice Input">
+            <i class="fa-solid fa-microphone"></i>
+          </button>
+          <button class="btn-icon" id="btn-toggle-speech" title="Toggle Voice Speech Synthesis">
+            <i class="fa-solid fa-volume-high" id="speech-icon"></i>
+          </button>
+          <button class="btn-icon" id="btn-minimize-chat" title="Minimize">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="chat-body" id="floating-chat-messages">
+        <div class="chat-msg bot">
+          <div class="msg-bubble">Hi! Tap the 🎙️ mic button or click and drag my header to move me anywhere on your screen!</div>
+        </div>
+      </div>
+
+      <div class="chat-footer">
+        <button class="btn-mic btn-mic-sm" id="btn-mic-floating-input" title="Click to Speak">
+          <i class="fa-solid fa-microphone"></i>
+        </button>
+        <input type="text" id="floating-chat-input" placeholder="Type or click 🎙️ to speak...">
+        <button id="floating-chat-send" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i></button>
+      </div>
+    </div>
+
+    <div class="floating-robot-trigger" id="floating-robot-trigger">
+      <div class="mini-robot-badge">1</div>
+      <svg class="mini-robot-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="45" fill="#05070d" stroke="#3b82f6" stroke-width="3"/>
+        <rect x="25" y="30" width="50" height="35" rx="10" fill="#ffffff"/>
+        <rect x="30" y="35" width="40" height="25" rx="8" fill="#0f172a"/>
+        <circle cx="42" cy="47" r="5" fill="#00f2fe" class="eye-glow"/>
+        <circle cx="58" cy="47" r="5" fill="#00f2fe" class="eye-glow"/>
+        <line x1="50" y1="30" x2="50" y2="15" stroke="#38bdf8" stroke-width="3"/>
+        <circle cx="50" cy="12" r="4" fill="#00f2fe"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- LIVE VOICE CALL OVERLAY MODAL -->
+  <div id="voiceCallModal" class="modal-overlay voice-call-overlay">
+    <div class="voice-call-card card">
+      <div class="voice-call-header">
+        <span class="call-badge pulse-glow"><i class="fa-solid fa-circle"></i> LIVE VOICE CALL ACTIVE</span>
+        <button type="button" class="btn-icon" id="btn-close-voice-call"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="voice-call-avatar-stage">
+        <div class="voice-wave-ring ring1"></div>
+        <div class="voice-wave-ring ring2"></div>
+        <div class="voice-wave-ring ring3"></div>
+        <div class="voice-avatar-orb">
+          <i class="fa-solid fa-robot"></i>
+        </div>
+      </div>
+
+      <div class="voice-call-info">
+        <h3>AI Booking Companion</h3>
+        <p id="voiceCallStatusText">🎙️ Listening... Speak your request out loud!</p>
+      </div>
+
+      <div class="voice-transcript-preview" id="voiceCallTranscriptBox">
+        <span class="transcript-placeholder">Your speech will appear here in real-time...</span>
+      </div>
+
+      <div class="voice-call-actions">
+        <button class="btn-call-action btn-mute" id="btn-toggle-mic-call">
+          <i class="fa-solid fa-microphone" id="call-mic-icon"></i>
+          <span>Mute Mic</span>
+        </button>
+        <button class="btn-call-action btn-end-call" id="btn-end-voice-call">
+          <i class="fa-solid fa-phone-slash"></i>
+          <span>End Call</span>
+        </button>
+      </div>
+    </div>
+  <!-- ========================================================================== -->
+  <!-- DOCUMENT-DRIVEN BUSINESS ONBOARDING & SETUP MODAL -->
+  <!-- ========================================================================== -->
+  <div id="documentSetupModal" class="modal-overlay" style="z-index: 100000;">
+    <div class="modal-card card" style="max-width: 850px; width: 95vw; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
+      <div class="modal-header" style="flex-shrink: 0;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg, #6366f1, #a855f7); display:flex; align-items:center; justify-content:center; color:white; font-size:18px;">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+          </div>
+          <div>
+            <h2 style="margin:0; font-size:18px;">Intelligent Document Business Setup</h2>
+            <p style="margin:0; font-size:12px; color:#94a3b8;">Auto-configure services, pricing, hours & AI assistant from your files</p>
+          </div>
+        </div>
+        <button type="button" class="btn-icon" onclick="closeDocumentSetupModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body" style="overflow-y: auto; padding: 20px; flex: 1;">
+        <!-- STEP 1: FILE UPLOAD STAGE -->
+        <div id="setupStepUpload">
+          <div class="doc-dropzone" id="docDropzone">
+            <input type="file" id="setupFileInput" multiple accept=".pdf,.docx,.doc,.txt,.csv,.xlsx,.xls,.png,.jpg,.jpeg" style="display:none;" onclick="event.stopPropagation()" onchange="handleSetupFilesSelected(event)">
+            <div class="doc-dropzone-icon">
+              <i class="fa-solid fa-cloud-arrow-up"></i>
+            </div>
+            <div class="doc-dropzone-title">Click to browse or drop business files here</div>
+            <div class="doc-dropzone-subtitle">Upload menus, service catalogs, price sheets, or brochures</div>
+            <div class="doc-formats-badge-list">
+              <span class="doc-format-badge"><i class="fa-regular fa-file-pdf"></i> PDF</span>
+              <span class="doc-format-badge"><i class="fa-regular fa-file-word"></i> DOCX</span>
+              <span class="doc-format-badge"><i class="fa-regular fa-file-excel"></i> XLSX / CSV</span>
+              <span class="doc-format-badge"><i class="fa-regular fa-file-lines"></i> TXT</span>
+              <span class="doc-format-badge"><i class="fa-regular fa-file-image"></i> Images</span>
+            </div>
+          </div>
+
+          <div id="setupSelectedFilesList" class="doc-files-list" style="display:none;"></div>
+
+          <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 12px;">
+            <button type="button" class="btn btn-glass" onclick="closeDocumentSetupModal()">Cancel</button>
+            <button type="button" class="btn btn-primary" id="btnRunExtraction" onclick="submitDocumentSetupExtraction()" disabled style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+              <i class="fa-solid fa-bolt"></i> Analyze & Extract with AI
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 2: LOADING ANALYSIS SPINNER -->
+        <div id="setupStepLoading" style="display:none; text-align:center; padding: 40px 20px;">
+          <div style="font-size: 40px; color: #a855f7; margin-bottom: 16px;">
+            <i class="fa-solid fa-circle-notch fa-spin"></i>
+          </div>
+          <h3 style="color:#f8fafc; font-size:18px; margin-bottom:8px;">AI Extracting Business Entities...</h3>
+          <p style="color:#94a3b8; font-size:13px; max-width:400px; margin:0 auto;">Parsing text, formatting pricing matrices, detecting schedules, resolving multi-document conflicts, and compiling knowledge base.</p>
+        </div>
+
+        <!-- STEP 3: REVIEW & CONFIRM STAGE -->
+        <div id="setupStepReview" style="display:none;">
+          <!-- Missing Fields Warning (No Fabrication Guarantee) -->
+          <div id="setupMissingBox" class="missing-fields-box" style="display:none;">
+            <h4><i class="fa-solid fa-triangle-exclamation"></i> Fields Missing in Uploaded Documents</h4>
+            <p style="font-size:12px; color:#fde68a; margin-bottom:8px;">To prevent fabrication, the following items were not found. We have pre-filled safe defaults or left them blank for your review:</p>
+            <div id="setupMissingTags" class="missing-tag-cloud"></div>
+          </div>
+
+          <!-- Conflict Detection Alert -->
+          <div id="setupConflictBox" style="display:none;"></div>
+
+          <!-- Business Profile Section -->
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+            <h4 style="color:#38bdf8; font-size:14px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+              <i class="fa-solid fa-building"></i> Extracted Business Profile
+            </h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Business Name</label>
+                <input type="text" id="previewBizName">
+              </div>
+              <div class="form-group">
+                <label>Detected Category</label>
+                <input type="text" id="previewBizCategory">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Phone Number</label>
+                <input type="text" id="previewBizPhone">
+              </div>
+              <div class="form-group">
+                <label>Physical Address / Location</label>
+                <input type="text" id="previewBizLocation">
+              </div>
+            </div>
+          </div>
+
+          <!-- Extracted Services Table -->
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <h4 style="color:#34d399; font-size:14px; margin:0; display:flex; align-items:center; gap:8px;">
+                <i class="fa-solid fa-concierge-bell"></i> Extracted Services & Pricing (<span id="previewServicesCount">0</span>)
+              </h4>
+              <button type="button" class="btn btn-sm btn-glass" onclick="addBlankServiceRow()">
+                <i class="fa-solid fa-plus"></i> Add Row
+              </button>
+            </div>
+            <div class="table-container" style="max-height: 220px; overflow-y: auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Service Name</th>
+                    <th>Category</th>
+                    <th>Price (₹)</th>
+                    <th>Duration (mins)</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="previewServicesTable"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Extracted Weekly Operating Hours -->
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+            <h4 style="color:#a855f7; font-size:14px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+              <i class="fa-solid fa-clock"></i> Weekly Operating Hours Schedule
+            </h4>
+            <div id="previewHoursContainer"></div>
+          </div>
+
+          <!-- Extracted Booking Rules & FAQs Preview -->
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+            <h4 style="color:#fbbf24; font-size:14px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+              <i class="fa-solid fa-shield-halved"></i> Extracted Rules & FAQs (<span id="previewFaqsCount">0</span>)
+            </h4>
+            <div id="previewFaqsContainer" style="font-size:13px; color:#cbd5e1;"></div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+            <button type="button" class="btn btn-glass" onclick="backToSetupUploadStep()">
+              <i class="fa-solid fa-arrow-left"></i> Re-upload
+            </button>
+            <button type="button" class="btn btn-primary btn-lg" onclick="confirmBusinessSetup()" style="background: linear-gradient(135deg, #10b981, #059669);">
+              <i class="fa-solid fa-circle-check"></i> Confirm & Launch Business Setup
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR CODE MODAL FOR STORE COUNTER -->
+  <div id="ownerQrModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 400px; text-align: center; padding: 32px 24px;">
+      <div class="modal-header" style="border: none; padding: 0 0 16px 0; justify-content: space-between;">
+        <h3 style="color: #fff; font-size: 18px; margin: 0;"><i class="fa-solid fa-qrcode" style="color: var(--primary-cyan);"></i> Storefront QR Code</h3>
+        <button type="button" class="btn-icon" onclick="closeQrModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p style="color: #94a3b8; font-size: 13px; margin-bottom: 20px;">Display or print this QR code so walk-in customers can scan to view services and book appointments directly on their phones.</p>
+      <div style="background: #fff; padding: 16px; border-radius: 16px; display: inline-block; box-shadow: 0 0 30px rgba(0,242,254,0.3); margin-bottom: 20px;">
+        <img id="ownerQrCodeImg" src="" alt="Booking QR Code" style="width: 200px; height: 200px; display: block;">
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button type="button" class="btn btn-primary btn-sm" onclick="printQrCode()"><i class="fa-solid fa-print"></i> Print QR</button>
+        <button type="button" class="btn btn-glass btn-sm" onclick="closeQrModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script src="app.js?v=12"></script>
+</body>
+</html>

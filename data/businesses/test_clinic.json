@@ -1,0 +1,170 @@
+{
+  "business": {
+    "business_id": "BUS002",
+    "name": "HealthPlus Clinic",
+    "business_name": "HealthPlus Clinic",
+    "business_type": "Medical Clinic & Healthcare",
+    "category": "Medical Clinic & Healthcare",
+    "description": "HealthPlus Clinic is a multi-specialty healthcare clinic offering General Medicine, Dermatology, Dentistry, Pediatrics, and Physiotherapy services.",
+    "location": "FC Road, Pune, Maharashtra, India",
+    "phone": "+91-9000000002",
+    "email": "contact@healthplus.example",
+    "currency": "INR",
+    "timezone": "Asia/Kolkata",
+    "operating_hours": "Monday-Saturday: 09:00 AM - 08:00 PM, Sunday: 09:00 AM - 02:00 PM",
+    "languages": ["English", "Hindi", "Marathi", "Hinglish"],
+    "booking_enabled": true,
+    "online_booking_enabled": true,
+    "walk_in_enabled": true
+  },
+  "services": [
+    {
+      "name": "General Physician Consultation",
+      "category": "General Medicine",
+      "duration_minutes": 30,
+      "price": 500,
+      "deposit_percentage": 0,
+      "description": "Comprehensive health check and general physician consultation with Dr. Amit Sharma."
+    },
+    {
+      "name": "Dermatology Consultation",
+      "category": "Dermatology",
+      "duration_minutes": 30,
+      "price": 700,
+      "deposit_percentage": 0,
+      "description": "Skin, hair, and dermatological consultation with Dr. Priya Patil."
+    },
+    {
+      "name": "Dental Consultation",
+      "category": "Dentistry",
+      "duration_minutes": 30,
+      "price": 600,
+      "deposit_percentage": 0,
+      "description": "Oral health consultation and dental checkup with Dr. Rahul Joshi."
+    },
+    {
+      "name": "Dental Cleaning",
+      "category": "Dentistry",
+      "duration_minutes": 45,
+      "price": 1000,
+      "deposit_percentage": 0,
+      "description": "Professional teeth cleaning and scaling by Dr. Rahul Joshi."
+    },
+    {
+      "name": "Pediatrics Consultation",
+      "category": "Pediatrics",
+      "duration_minutes": 30,
+      "price": 600,
+      "deposit_percentage": 0,
+      "description": "Child health care and pediatrics consultation with Dr. Sneha Kulkarni."
+    },
+    {
+      "name": "Physiotherapy Session",
+      "category": "Physiotherapy",
+      "duration_minutes": 45,
+      "price": 800,
+      "deposit_percentage": 0,
+      "description": "Physical therapy, rehabilitation, and joint pain session with Dr. Vikram Rao."
+    },
+    {
+      "name": "Health Checkup",
+      "category": "General Medicine",
+      "duration_minutes": 60,
+      "price": 1500,
+      "deposit_percentage": 0,
+      "description": "Full body preventive health checkup and consultation."
+    }
+  ],
+  "staff": [
+    {
+      "name": "Dr. Amit Sharma",
+      "role": "General Physician",
+      "working_days": "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday",
+      "working_start": "09:00",
+      "working_end": "17:00",
+      "break_start": "13:00",
+      "break_end": "14:00",
+      "supported_services": "General Physician Consultation, Health Checkup"
+    },
+    {
+      "name": "Dr. Priya Patil",
+      "role": "Dermatologist",
+      "working_days": "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday",
+      "working_start": "10:00",
+      "working_end": "18:00",
+      "break_start": "13:00",
+      "break_end": "14:00",
+      "supported_services": "Dermatology Consultation"
+    },
+    {
+      "name": "Dr. Rahul Joshi",
+      "role": "Dentist",
+      "working_days": "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday",
+      "working_start": "09:00",
+      "working_end": "17:00",
+      "break_start": "13:00",
+      "break_end": "14:00",
+      "supported_services": "Dental Consultation, Dental Cleaning"
+    },
+    {
+      "name": "Dr. Sneha Kulkarni",
+      "role": "Pediatrician",
+      "working_days": "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday",
+      "working_start": "10:00",
+      "working_end": "18:00",
+      "break_start": "13:00",
+      "break_end": "14:00",
+      "supported_services": "Pediatrics Consultation"
+    },
+    {
+      "name": "Dr. Vikram Rao",
+      "role": "Physiotherapist",
+      "working_days": "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday",
+      "working_start": "09:00",
+      "working_end": "17:00",
+      "break_start": "13:00",
+      "break_end": "14:00",
+      "supported_services": "Physiotherapy Session"
+    }
+  ],
+  "resources": [
+    {
+      "name": "Consultation Room 1",
+      "resource_type": "consultation_room"
+    },
+    {
+      "name": "Dental Chair 1",
+      "resource_type": "dental_chair"
+    }
+  ],
+  "rules": [
+    {
+      "rule_key": "min_notice_minutes",
+      "rule_value": "30",
+      "description": "Minimum notice required."
+    },
+    {
+      "rule_key": "appointment_buffer_minutes",
+      "rule_value": "10",
+      "description": "Buffer between consultations."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "What doctors do you have?",
+      "answer": "We have specialists in general medicine, dermatology, dentistry, pediatrics and physiotherapy."
+    },
+    {
+      "question": "Do you accept walk-ins?",
+      "answer": "Yes, walk-ins are accepted subject to doctor availability."
+    },
+    {
+      "question": "Can I cancel my appointment?",
+      "answer": "Yes. You can cancel your appointment. Cancellations less than 2 hours before the appointment may be subject to a charge."
+    },
+    {
+      "question": "Can I reschedule?",
+      "answer": "Yes. I can help you find another available date and time."
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+APPOINTMENT POLICIES
+
+Customers should provide the required appointment information when booking.
+
+The system checks appointment availability before confirming a booking.
+
+An appointment should only be confirmed when the requested date and time are available.
+
+When rescheduling an appointment, the system checks availability before moving the appointment.
+
+Customers can cancel appointments through the AI assistant.
+
+The AI assistant should not claim that an appointment is available unless the database confirms availability.

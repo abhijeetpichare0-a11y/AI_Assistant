@@ -1,0 +1,18 @@
+SERVICES
+
+Event AI Assistant supports different types of events and appointments.
+
+Supported event examples include:
+
+- Party
+- Birthday Party
+- Wedding
+- Corporate Event
+- Meeting
+- Anniversary
+- Conference
+- Social Event
+
+Customers can ask the AI assistant about available appointment dates and times.
+
+The system can automatically check available slots instead of requiring customers to manually search for available times.

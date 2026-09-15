@@ -1,0 +1,426 @@
+{
+  "business": {
+    "business_id": "BUS001",
+    "name": "GlowCare Salon & Spa",
+    "business_name": "GlowCare Salon & Spa",
+    "business_type": "Salon and Spa",
+    "category": "Beauty and Wellness",
+    "description": "GlowCare Salon & Spa is a full-service salon and spa offering hair styling, grooming, skincare, manicure, pedicure, massage and spa services.",
+    "location": "FC Road, Pune, Maharashtra, India",
+    "phone": "+91-9000000000",
+    "email": "hello@glowcare.example",
+    "currency": "INR",
+    "timezone": "Asia/Kolkata",
+    "operating_hours": "Monday-Saturday: 10:00 AM - 08:00 PM, Sunday: 10:00 AM - 06:00 PM",
+    "languages": [
+      "English",
+      "Hindi",
+      "Marathi",
+      "Hinglish"
+    ],
+    "booking_enabled": true,
+    "online_booking_enabled": true,
+    "walk_in_enabled": true
+  },
+  "business_hours": {
+    "monday": "10:00-20:00",
+    "tuesday": "10:00-20:00",
+    "wednesday": "10:00-20:00",
+    "thursday": "10:00-20:00",
+    "friday": "10:00-20:00",
+    "saturday": "10:00-20:00",
+    "sunday": "10:00-18:00"
+  },
+  "services": [
+    {
+      "service_id": "S001",
+      "name": "Haircut",
+      "category": "Hair",
+      "duration_minutes": 30,
+      "price": 400,
+      "gender": "unisex",
+      "staff_required": true,
+      "resource_required": false,
+      "deposit_percentage": 0,
+      "description": "Professional precision haircut with styling consultation."
+    },
+    {
+      "service_id": "S002",
+      "name": "Haircut + Beard",
+      "category": "Hair & Grooming",
+      "duration_minutes": 45,
+      "price": 600,
+      "gender": "male",
+      "staff_required": true,
+      "resource_required": false,
+      "deposit_percentage": 0,
+      "description": "Combined precision haircut and custom beard styling."
+    },
+    {
+      "service_id": "S003",
+      "name": "Hair Styling",
+      "category": "Hair",
+      "duration_minutes": 45,
+      "price": 700,
+      "gender": "unisex",
+      "staff_required": true,
+      "resource_required": false,
+      "deposit_percentage": 0,
+      "description": "Creative hair styling and blow-dry."
+    },
+    {
+      "service_id": "S004",
+      "name": "Hair Coloring",
+      "category": "Hair",
+      "duration_minutes": 120,
+      "price": 2000,
+      "gender": "unisex",
+      "staff_required": true,
+      "resource_required": true,
+      "required_resource_type": "coloring_station",
+      "deposit_required": true,
+      "deposit_percentage": 20,
+      "description": "Full hair coloring treatment requiring coloring station."
+    },
+    {
+      "service_id": "S005",
+      "name": "Facial",
+      "category": "Skin Care",
+      "duration_minutes": 60,
+      "price": 1200,
+      "gender": "unisex",
+      "staff_required": true,
+      "resource_required": true,
+      "required_resource_type": "facial_room",
+      "deposit_percentage": 0,
+      "description": "Rejuvenating skin facial treatment in private facial room."
+    },
+    {
+      "service_id": "S006",
+      "name": "Cleanup",
+      "category": "Skin Care",
+      "duration_minutes": 45,
+      "price": 700,
+      "gender": "unisex",
+      "staff_required": true,
+      "resource_required": true,
+      "required_resource_type": "facial_room",
+      "deposit_percentage": 0,
+      "description": "Deep cleansing facial skin cleanup."
+    },
+    {
+      "service_id": "S007",
+      "name": "Manicure",
+      "category": "Nails",
+      "duration_minutes": 45,
+      "price": 600,
+      "gender": "unisex",
+      "staff_required": true,
+      "resource_required": true,
+      "required_resource_type": "nail_station",
+      "deposit_percentage": 0,
+      "description": "Luxury hand and nail care treatment."
+    },
+    {
+      "service_id": "S008",
+      "name": "Pedicure",
+      "category": "Nails",
+      "duration_minutes": 60,
+      "price": 800,
+      "gender": "unisex",
+      "staff_required": true,
+      "resource_required": true,
+      "required_resource_type": "nail_station",
+      "deposit_percentage": 0,
+      "description": "Relaxing foot and pedicure spa treatment."
+    },
+    {
+      "service_id": "S009",
+      "name": "Head Massage",
+      "category": "Massage",
+      "duration_minutes": 30,
+      "price": 500,
+      "gender": "unisex",
+      "staff_required": true,
+      "resource_required": true,
+      "required_resource_type": "spa_room",
+      "deposit_percentage": 0,
+      "description": "Stress-relieving scalp and head massage."
+    },
+    {
+      "service_id": "S010",
+      "name": "Full Body Spa",
+      "category": "Spa",
+      "duration_minutes": 90,
+      "price": 2000,
+      "gender": "unisex",
+      "staff_required": true,
+      "resource_required": true,
+      "required_resource_type": "spa_room",
+      "deposit_required": true,
+      "deposit_percentage": 20,
+      "description": "Luxurious 90-minute full body massage and aromatherapy spa."
+    },
+    {
+      "service_id": "S011",
+      "name": "Hair Spa",
+      "category": "Hair",
+      "duration_minutes": 60,
+      "price": 1000,
+      "gender": "unisex",
+      "staff_required": true,
+      "resource_required": true,
+      "deposit_percentage": 0,
+      "description": "Nourishing hair spa treatment."
+    },
+    {
+      "service_id": "S012",
+      "name": "Beard Trim",
+      "category": "Grooming",
+      "duration_minutes": 20,
+      "price": 250,
+      "gender": "male",
+      "staff_required": true,
+      "resource_required": false,
+      "deposit_percentage": 0,
+      "description": "Quick custom beard trim."
+    }
+  ],
+  "staff": [
+    {
+      "staff_id": "ST001",
+      "name": "Rahul",
+      "role": "Senior Hair Stylist",
+      "services": [
+        "Haircut",
+        "Haircut + Beard",
+        "Hair Styling",
+        "Beard Trim",
+        "Head Massage"
+      ],
+      "supported_services": "Haircut,Haircut + Beard,Hair Styling,Beard Trim,Head Massage",
+      "working_days": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday"
+      ],
+      "working_hours": "10:00-19:00",
+      "working_start": "10:00",
+      "working_end": "19:00",
+      "break": "14:00-14:30",
+      "break_start": "14:00",
+      "break_end": "14:30"
+    },
+    {
+      "staff_id": "ST002",
+      "name": "Priya",
+      "role": "Senior Hair Stylist",
+      "services": [
+        "Haircut",
+        "Hair Styling",
+        "Hair Coloring",
+        "Hair Spa"
+      ],
+      "supported_services": "Haircut,Hair Styling,Hair Coloring,Hair Spa",
+      "working_days": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday"
+      ],
+      "working_hours": "10:00-19:00",
+      "working_start": "10:00",
+      "working_end": "19:00",
+      "break": "14:00-14:30",
+      "break_start": "14:00",
+      "break_end": "14:30"
+    },
+    {
+      "staff_id": "ST003",
+      "name": "Neha",
+      "role": "Skin Care Specialist",
+      "services": [
+        "Facial",
+        "Cleanup",
+        "Head Massage"
+      ],
+      "supported_services": "Facial,Cleanup,Head Massage",
+      "working_days": [
+        "Monday",
+        "Tuesday",
+        "Thursday",
+        "Friday",
+        "Saturday"
+      ],
+      "working_hours": "11:00-20:00",
+      "working_start": "11:00",
+      "working_end": "20:00",
+      "break": "15:00-15:30",
+      "break_start": "15:00",
+      "break_end": "15:30"
+    },
+    {
+      "staff_id": "ST004",
+      "name": "Sneha",
+      "role": "Spa and Nail Specialist",
+      "services": [
+        "Manicure",
+        "Pedicure",
+        "Full Body Spa",
+        "Head Massage"
+      ],
+      "supported_services": "Manicure,Pedicure,Full Body Spa,Head Massage",
+      "working_days": [
+        "Monday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday"
+      ],
+      "working_hours": "10:00-20:00",
+      "working_start": "10:00",
+      "working_end": "20:00",
+      "break": "14:00-14:30",
+      "break_start": "14:00",
+      "break_end": "14:30"
+    },
+    {
+      "staff_id": "ST005",
+      "name": "Amit",
+      "role": "Grooming Specialist",
+      "services": [
+        "Haircut",
+        "Haircut + Beard",
+        "Beard Trim",
+        "Head Massage"
+      ],
+      "supported_services": "Haircut,Haircut + Beard,Beard Trim,Head Massage",
+      "working_days": [
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday"
+      ],
+      "working_hours": "11:00-20:00",
+      "working_start": "11:00",
+      "working_end": "20:00",
+      "break": "15:00-15:30",
+      "break_start": "15:00",
+      "break_end": "15:30"
+    }
+  ],
+  "resources": [
+    {
+      "resource_id": "R001",
+      "name": "Hair Coloring Station 1",
+      "resource_type": "coloring_station",
+      "services": ["Hair Coloring"]
+    },
+    {
+      "resource_id": "R002",
+      "name": "Facial Room 1",
+      "resource_type": "facial_room",
+      "services": ["Facial", "Cleanup"]
+    },
+    {
+      "resource_id": "R003",
+      "name": "Spa Room 1",
+      "resource_type": "spa_room",
+      "services": ["Full Body Spa", "Head Massage"]
+    },
+    {
+      "resource_id": "R004",
+      "name": "Nail Station 1",
+      "resource_type": "nail_station",
+      "services": ["Manicure", "Pedicure"]
+    }
+  ],
+  "booking_rules": {
+    "minimum_booking_notice_minutes": 30,
+    "maximum_booking_days_ahead": 60,
+    "same_day_booking": true,
+    "rescheduling_allowed": true,
+    "cancellation_allowed": true,
+    "cancellation_notice_hours": 4,
+    "appointment_buffer_minutes": 10,
+    "maximum_group_size": 4,
+    "late_arrival_threshold_minutes": 15,
+    "walk_ins_allowed": true,
+    "appointments_recommended": true
+  },
+  "deposit_rules": {
+    "hair_coloring": {
+      "required": true,
+      "percentage": 20
+    },
+    "full_body_spa": {
+      "required": true,
+      "percentage": 20
+    },
+    "other_services": {
+      "required": false
+    }
+  },
+  "policies": {
+    "cancellation": "Appointments can be cancelled. Cancellations made less than 4 hours before the appointment may incur a cancellation charge.",
+    "rescheduling": "Appointments can be rescheduled subject to availability.",
+    "late_arrival": "Customers arriving more than 15 minutes late may have their appointment shortened or rescheduled depending on availability.",
+    "walk_in": "Walk-ins are accepted subject to availability.",
+    "group_booking": "Group bookings are supported for up to 4 people subject to availability.",
+    "appointment_recommendation": "Appointments are recommended, especially for longer services."
+  },
+  "faqs": [
+    {
+      "question": "What are your opening hours?",
+      "answer": "GlowCare is open Monday to Saturday from 10 AM to 8 PM and Sunday from 10 AM to 6 PM."
+    },
+    {
+      "question": "Do you accept walk-ins?",
+      "answer": "Yes, walk-ins are accepted subject to availability."
+    },
+    {
+      "question": "How much is a haircut?",
+      "answer": "A haircut costs ₹400 and takes approximately 30 minutes."
+    },
+    {
+      "question": "How much is hair coloring?",
+      "answer": "Hair coloring costs ₹2,000 and takes approximately 120 minutes."
+    },
+    {
+      "question": "Can I choose a stylist?",
+      "answer": "Yes. Customers can request a preferred stylist if that stylist provides the requested service and is available."
+    },
+    {
+      "question": "Can I cancel my appointment?",
+      "answer": "Yes. Cancellation is allowed, but cancellations less than 4 hours before the appointment may incur a charge."
+    },
+    {
+      "question": "Can I reschedule?",
+      "answer": "Yes. Appointments can be rescheduled subject to availability."
+    },
+    {
+      "question": "Do you offer spa services?",
+      "answer": "Yes. GlowCare offers Full Body Spa for ₹2,000 and Head Massage for ₹500."
+    },
+    {
+      "question": "How much is manicure?",
+      "answer": "Manicure costs ₹600 and takes approximately 45 minutes."
+    },
+    {
+      "question": "How much is pedicure?",
+      "answer": "Pedicure costs ₹800 and takes approximately 60 minutes."
+    },
+    {
+      "question": "How many people can book together?",
+      "answer": "Group bookings are supported for up to 4 people subject to availability."
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Environment variables & secrets (CRITICAL)
+.env
+.env.*
+!.env.example
+
+# Databases & SQLite
+*.db
+*.sqlite3
+*.sqlite
+app.db
+event_ai.db
+
+# Vector databases & temporary generated data
+data/vector_db/
+data/business_documents/
+
+# Generated PDFs & artifacts
+static/pdfs/*.pdf
+!static/pdfs/.gitkeep
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Antigravity & Scratch
+.gemini/
+scratch/
+
+# Operating system
+.DS_Store
+Thumbs.db

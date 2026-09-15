@@ -1,0 +1,22 @@
+FREQUENTLY ASKED QUESTIONS
+
+Q: What can the AI assistant do?
+A: The AI assistant helps you book event consultations, check real-time date & time availability, reschedule or cancel bookings, recommend venues & event packages, and send automated customer reminders.
+
+Q: How do automated reminders work?
+A: Event AI automatically schedules 4 notification tiers for every booking: 24 hours, 2 hours, 1 hour, and 10 minutes prior to the appointment. Reminders are dispatched directly to the customer's WhatsApp number and SMS.
+
+Q: Can I check appointment availability?
+A: Yes. The assistant automatically checks available dates and time slots (10:00 AM to 8:00 PM) in real time.
+
+Q: Can I reschedule an appointment?
+A: Yes. The assistant can help you pick a new date or time slot and automatically update your booking.
+
+Q: Can I cancel an appointment?
+A: Yes. Simply ask the assistant to cancel your booking by providing your Appointment ID or confirming your active appointment.
+
+Q: What event packages and services do you offer?
+A: We offer event management for Grand Weddings & Receptions, Milestone Birthday Parties, Corporate Galas & Product Launches, Anniversary & VIP Dinners, Tech Conferences, Music Concerts, and Private Consultations.
+
+Q: What venues can I choose from?
+A: Popular recommended venues include Grand City Ballroom, Tech City Center, Royal Garden Resort, Imperial Palace Hall, and Pune Event Hall. Custom venues can also be specified!
