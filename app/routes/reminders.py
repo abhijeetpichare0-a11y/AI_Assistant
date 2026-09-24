@@ -79,12 +79,19 @@ def get_reminder_stats(
     }
 
 
+from app.scheduler.schedular import (
+    stop_reminder_scheduler,
+    start_reminder_scheduler,
+    is_reminder_scheduler_active,
+)
+
+
 @router.delete("/pending")
 def delete_pending_reminders(
     business_id: int | None = None,
     db: Session = Depends(get_db)
 ):
-    query = db.query(Reminder).filter(Reminder.status == "pending")
+    query = db.query(Reminder).filter(Reminder.status.in_(["pending", "paused", "failed"]))
     if business_id:
         query = query.filter(Reminder.business_id == business_id)
     count = query.delete(synchronize_session=False)
@@ -92,4 +99,44 @@ def delete_pending_reminders(
     return {
         "message": f"Successfully deleted {count} pending reminders.",
         "deleted_count": count
+    }
+
+
+@router.post("/stop")
+def stop_and_clear_pending_reminders(
+    business_id: int | None = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Stop/pause the reminder dispatcher and delete all pending/paused/failed reminders.
+    """
+    stop_reminder_scheduler()
+    query = db.query(Reminder).filter(Reminder.status.in_(["pending", "paused", "failed"]))
+    if business_id:
+        query = query.filter(Reminder.business_id == business_id)
+    count = query.delete(synchronize_session=False)
+    db.commit()
+    return {
+        "message": f"Reminder processing stopped and {count} pending/unsent reminders deleted.",
+        "deleted_count": count,
+        "scheduler_active": False
+    }
+
+
+@router.post("/start")
+def resume_reminder_scheduler():
+    """
+    Resume/start the background reminder scheduler.
+    """
+    start_reminder_scheduler()
+    return {
+        "message": "Reminder processing resumed.",
+        "scheduler_active": True
+    }
+
+
+@router.get("/scheduler-status")
+def get_scheduler_status():
+    return {
+        "scheduler_active": is_reminder_scheduler_active()
     }

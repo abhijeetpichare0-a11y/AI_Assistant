@@ -534,38 +534,69 @@ class AppointmentAgent:
             }
 
         elif intent == "DEPOSIT_INFORMATION":
+            rules = get_business_rules(self.db, self.business_id)
+            deposit_rule = rules.get("deposit_requirements")
+            if deposit_rule:
+                policy_text = f"💳 **{biz_name} Deposit Policy**:\n{deposit_rule}"
+            else:
+                policy_text = f"💳 **{biz_name} Deposit Policy**:\nServices such as Hair Coloring and Full Body Spa require a 20% advance deposit to confirm your booking."
             return {
                 "intent": "DEPOSIT_INFORMATION",
                 "booked": False,
                 "missing": [],
-                "reply": f"💳 **{biz_name} Deposit Policy**:\nServices such as Hair Coloring and Full Body Spa require a 20% advance deposit to confirm your booking.",
+                "reply": policy_text,
                 "options": ["📅 Book Appointment", "⏰ Check Available Slots", "💬 Other (Type your own)"]
             }
 
         elif intent == "LATE_ARRIVAL":
+            rules = get_business_rules(self.db, self.business_id)
+            late_rule = rules.get("late_arrival_rules")
+            if late_rule:
+                policy_text = f"⏰ **{biz_name} Late Arrival Policy**:\n{late_rule}"
+            else:
+                policy_text = f"⏰ **{biz_name} Late Arrival Policy**:\nIf you are more than 15 minutes late, your appointment may be shortened or rescheduled based on staff availability."
             return {
                 "intent": "LATE_ARRIVAL",
                 "booked": False,
                 "missing": [],
-                "reply": f"⏰ **{biz_name} Late Arrival Policy**:\nIf you are more than 15 minutes late, your appointment may be shortened or rescheduled based on staff availability.",
+                "reply": policy_text,
                 "options": ["📅 Book Appointment", "⏰ Check Available Slots", "💬 Other (Type your own)"]
             }
 
         elif intent == "CANCELLATION_POLICY":
+            rules = get_business_rules(self.db, self.business_id)
+            cancel_rule = rules.get("cancellation_rules")
+            min_notice = rules.get("min_notice_hours")
+            resched_rule = rules.get("rescheduling_rules")
+            if cancel_rule:
+                parts = [f"❌ **{biz_name} Cancellation Policy**:\n{cancel_rule}"]
+                if min_notice:
+                    parts.append(f"Notice required: at least {min_notice} hours in advance.")
+                if resched_rule:
+                    parts.append(f"Rescheduling: {resched_rule}")
+                policy_text = "\n".join(parts)
+            else:
+                policy_text = f"❌ **{biz_name} Cancellation Policy**:\nCancellations and rescheduling are allowed free of charge up to 4 hours prior to your scheduled slot."
             return {
                 "intent": "CANCELLATION_POLICY",
                 "booked": False,
                 "missing": [],
-                "reply": f"❌ **{biz_name} Cancellation Policy**:\nCancellations and rescheduling are allowed free of charge up to 4 hours prior to your scheduled slot.",
+                "reply": policy_text,
                 "options": ["📅 Book Appointment", "⏰ Check Available Slots", "💬 Other (Type your own)"]
             }
 
         elif intent == "GROUP_BOOKING":
+            rules = get_business_rules(self.db, self.business_id)
+            max_group = rules.get("max_group_size")
+            if max_group:
+                policy_text = f"👥 **{biz_name} Group Booking Policy**:\nWe support group bookings for up to {max_group} people! You can specify the number of guests when making your appointment."
+            else:
+                policy_text = f"👥 **{biz_name} Group Booking Policy**:\nWe support group bookings for up to 4 people! You can specify the number of guests when making your appointment."
             return {
                 "intent": "GROUP_BOOKING",
                 "booked": False,
                 "missing": [],
-                "reply": f"👥 **{biz_name} Group Booking Policy**:\nWe support group bookings for up to 4 people! You can specify the number of guests when making your appointment.",
+                "reply": policy_text,
                 "options": ["📅 Book Appointment", "⏰ Check Available Slots", "💬 Other (Type your own)"]
             }
 

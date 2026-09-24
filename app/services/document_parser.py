@@ -20,8 +20,12 @@ def get_upload_dir() -> Path:
 
 
 def sanitize_filename(filename: str) -> str:
+    # Extract only the base filename to prevent path traversal
+    base = os.path.basename(filename).replace("\\", "/").split("/")[-1]
+    # Remove any relative directory traversal dots
+    cleaned = re.sub(r"\.\.+", "_", base)
     # Keep alphanumeric, dot, underscore, hyphen
-    cleaned = re.sub(r"[^\w\.\- ]", "_", filename)
+    cleaned = re.sub(r"[^\w\.\- ]", "_", cleaned)
     return cleaned.strip() or "unnamed_document.txt"
 
 
@@ -109,21 +113,29 @@ def extract_text_from_image(file_bytes: bytes, filename: str) -> str:
 def parse_and_save_uploaded_file(
     file_bytes: bytes,
     original_filename: str,
-    owner_id: int
+    owner_id: int,
+    business_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """
-    Validates, securely stores, and extracts structured text from an uploaded document.
+    Validates, securely stores, and extracts readable text from an uploaded document.
+    Enforces format, file size, empty file checks, and captures extraction failures gracefully.
     """
     clean_name = sanitize_filename(original_filename)
     suffix = Path(clean_name).suffix.lower()
 
-    if suffix not in ALLOWED_EXTENSIONS:
+    if not suffix or suffix not in ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=400,
-            detail=f"Unsupported file format '{suffix}'. Supported formats: {', '.join(sorted(ALLOWED_EXTENSIONS))}"
+            detail=f"Unsupported file format '{suffix}'. Supported formats: PDF, DOCX, TXT, CSV, XLSX."
         )
 
     file_size = len(file_bytes)
+    if file_size == 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File '{clean_name}' is empty (0 bytes). Uploaded document must contain readable content."
+        )
+
     if file_size > MAX_FILE_SIZE_BYTES:
         raise HTTPException(
             status_code=400,
@@ -131,10 +143,11 @@ def parse_and_save_uploaded_file(
         )
 
     upload_dir = get_upload_dir()
-    # Unique file storage per owner/timestamp
+    # Secure storage naming associated with business/tenant and owner
     import time
-    timestamp = int(time.time())
-    saved_filename = f"owner_{owner_id}_{timestamp}_{clean_name}"
+    timestamp = int(time.time() * 1000)
+    biz_prefix = f"biz_{business_id}_" if business_id else ""
+    saved_filename = f"{biz_prefix}owner_{owner_id}_{timestamp}_{clean_name}"
     saved_path = upload_dir / saved_filename
 
     with open(saved_path, "wb") as f:
@@ -162,7 +175,7 @@ def parse_and_save_uploaded_file(
             extracted_text = extract_text_from_txt(file_bytes)
     except Exception as e:
         status = "failed"
-        error_msg = str(e)
+        error_msg = f"Failed to extract readable content: {str(e)}"
         extracted_text = ""
 
     return {
@@ -170,7 +183,7 @@ def parse_and_save_uploaded_file(
         "file_type": suffix.lstrip("."),
         "file_path": str(saved_path),
         "file_size": file_size,
-        "extracted_text": extracted_text.strip(),
+        "extracted_text": (extracted_text or "").strip(),
         "processing_status": status,
         "error_message": error_msg
     }

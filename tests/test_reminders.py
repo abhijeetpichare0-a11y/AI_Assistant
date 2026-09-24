@@ -33,5 +33,26 @@ class TestRemindersAPI(unittest.TestCase):
         stats_after = client.get("/reminders/stats").json()
         self.assertEqual(stats_after["pending"], 0)
 
+    def test_stop_and_resume_reminders(self):
+        # Test stop endpoint
+        stop_res = client.post("/reminders/stop")
+        self.assertEqual(stop_res.status_code, 200)
+        self.assertFalse(stop_res.json()["scheduler_active"])
+
+        # Check status endpoint
+        status_res = client.get("/reminders/scheduler-status")
+        self.assertEqual(status_res.status_code, 200)
+        self.assertFalse(status_res.json()["scheduler_active"])
+
+        # Test resume endpoint
+        start_res = client.post("/reminders/start")
+        self.assertEqual(start_res.status_code, 200)
+        self.assertTrue(start_res.json()["scheduler_active"])
+
+        # Stop again to keep stopped as requested
+        stop_again = client.post("/reminders/stop")
+        self.assertEqual(stop_again.status_code, 200)
+        self.assertFalse(stop_again.json()["scheduler_active"])
+
 if __name__ == "__main__":
     unittest.main()

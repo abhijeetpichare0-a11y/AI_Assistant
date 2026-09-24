@@ -47,30 +47,38 @@ class RAGAgent:
             return None
 
         q_lower = question.lower()
+        from app.models import (
+            Business,
+            BusinessHours,
+            BusinessRule,
+            Service,
+            BusinessFAQ,
+            BusinessDocument,
+        )
+
+        biz = db.query(Business).filter(Business.id == business_id).first()
+        biz_name = biz.name if biz and biz.name else "Our business"
+        currency = biz.currency if biz and biz.currency else "₹"
 
         # 1. Operating hours queries
-        hours_keywords = ["hours", "timings", "timing", "open", "close", "schedule", "working hours", "operating hours"]
+        hours_keywords = ["hours", "timings", "timing", "open", "close", "closed", "schedule", "working hours", "operating hours"]
         if any(kw in q_lower for kw in hours_keywords):
-            from app.models.business_hours import BusinessHours
-            from app.models.business import Business
-            biz = db.query(Business).filter(Business.id == business_id).first()
             hours = db.query(BusinessHours).filter(BusinessHours.business_id == business_id).all()
             if hours:
                 days_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-                hours_dict = {h.day: h for h in hours}
+                hours_dict = {h.day.capitalize(): h for h in hours}
 
                 # Check if specific day asked
                 for d in days_order:
                     if d.lower() in q_lower:
                         h = hours_dict.get(d)
                         if h:
-                            biz_name = biz.name if biz else "We"
                             if not h.is_open:
                                 return f"{biz_name} is closed on {d}s."
                             return f"On {d}s, {biz_name} is open from {h.opening_time} to {h.closing_time}."
 
                 # Overall hours schedule
-                lines = [f"Here are the operating hours for {biz.name if biz else 'our business'}:"]
+                lines = [f"Here are the operating hours for {biz_name}:"]
                 for d in days_order:
                     h = hours_dict.get(d)
                     if h:
@@ -78,8 +86,91 @@ class RAGAgent:
                         lines.append(f"• {d}: {status_str}")
                 return "\n".join(lines)
 
-        # 2. Business FAQ queries
-        from app.models.faq import BusinessFAQ
+        # 2. Business Rules & Booking Policies queries
+        rule_keywords = [
+            "cancellation", "cancel", "cancelling", "reschedule", "rescheduling",
+            "deposit", "advance", "late", "delay", "grace period", "notice",
+            "group", "guests", "policy", "policies", "rule", "rules", "refund"
+        ]
+        if any(kw in q_lower for kw in rule_keywords):
+            rules = db.query(BusinessRule).filter(BusinessRule.business_id == business_id).all()
+            if rules:
+                rule_dict = {r.rule_key: r.rule_value for r in rules}
+
+                # Check specific policy queries
+                if any(w in q_lower for w in ["cancel", "cancellation", "refund", "notice"]):
+                    cancel_rule = rule_dict.get("cancellation_rules")
+                    min_notice = rule_dict.get("min_notice_hours")
+                    resched_rule = rule_dict.get("rescheduling_rules")
+                    if cancel_rule or min_notice:
+                        parts = [f"❌ **{biz_name} Cancellation Policy**:"]
+                        if cancel_rule:
+                            parts.append(cancel_rule)
+                        if min_notice:
+                            parts.append(f"Notice required: at least {min_notice} hours prior to appointment.")
+                        if resched_rule:
+                            parts.append(f"Rescheduling: {resched_rule}")
+                        return "\n".join(parts)
+
+                if any(w in q_lower for w in ["reschedule", "rescheduling"]):
+                    resched_rule = rule_dict.get("rescheduling_rules")
+                    if resched_rule:
+                        return f"🔄 **{biz_name} Rescheduling Policy**:\n{resched_rule}"
+
+                if any(w in q_lower for w in ["deposit", "advance", "upfront"]):
+                    dep_rule = rule_dict.get("deposit_requirements")
+                    if dep_rule:
+                        return f"💳 **{biz_name} Deposit Policy**:\n{dep_rule}"
+
+                if any(w in q_lower for w in ["late", "delay", "grace"]):
+                    late_rule = rule_dict.get("late_arrival_rules")
+                    if late_rule:
+                        return f"⏰ **{biz_name} Late Arrival Policy**:\n{late_rule}"
+
+                if any(w in q_lower for w in ["group", "guests", "party size"]):
+                    group_rule = rule_dict.get("max_group_size")
+                    if group_rule:
+                        return f"👥 **{biz_name} Group Booking Policy**:\nMaximum group size is {group_rule} guests per appointment."
+
+                # If general policy/rules inquiry
+                if any(w in q_lower for w in ["policy", "policies", "rule", "rules"]):
+                    lines = [f"📋 **Policies & Guidelines for {biz_name}**:"]
+                    if "cancellation_rules" in rule_dict:
+                        lines.append(f"• **Cancellation**: {rule_dict['cancellation_rules']}")
+                    if "deposit_requirements" in rule_dict:
+                        lines.append(f"• **Deposits**: {rule_dict['deposit_requirements']}")
+                    if "late_arrival_rules" in rule_dict:
+                        lines.append(f"• **Late Arrivals**: {rule_dict['late_arrival_rules']}")
+                    if "rescheduling_rules" in rule_dict:
+                        lines.append(f"• **Rescheduling**: {rule_dict['rescheduling_rules']}")
+                    if len(lines) > 1:
+                        return "\n".join(lines)
+
+        # 3. Services Catalog & Pricing queries
+        service_keywords = [
+            "service", "services", "price", "prices", "pricing", "cost", "how much",
+            "rate", "rates", "menu", "catalog", "treatment", "treatments",
+            "package", "packages", "what do you offer", "what do you provide", "offerings"
+        ]
+        if any(kw in q_lower for kw in service_keywords):
+            services = db.query(Service).filter(Service.business_id == business_id, Service.is_active == True).all()
+            if services:
+                # Check for specific service match
+                matched_services = [s for s in services if s.name.lower() in q_lower]
+                if matched_services:
+                    lines = [f"Here is the service information for **{biz_name}**:"]
+                    for s in matched_services:
+                        desc = f" - {s.description}" if s.description else ""
+                        lines.append(f"• **{s.name}**: {currency}{float(s.price):.0f} ({s.duration_minutes} mins){desc}")
+                    return "\n".join(lines)
+
+                # General service catalog inquiry
+                lines = [f"💇 **Services & Pricing at {biz_name}**:"]
+                for s in services:
+                    lines.append(f"• **{s.name}** ({s.duration_minutes} mins) - {currency}{float(s.price):.0f}")
+                return "\n".join(lines)
+
+        # 4. Business FAQ queries
         faqs = db.query(BusinessFAQ).filter(BusinessFAQ.business_id == business_id).all()
         if faqs:
             q_words = set(re.findall(r"\b\w{3,}\b", q_lower))
@@ -94,22 +185,48 @@ class RAGAgent:
             if best_faq:
                 return best_faq.answer
 
-        # 3. Business Documents text fallback
-        from app.models.document import BusinessDocument
+        # 5. Business Documents text fallback with chunk/paragraph relevance scoring
         docs = db.query(BusinessDocument).filter(
             BusinessDocument.business_id == business_id,
             BusinessDocument.processing_status == "processed"
         ).all()
         if docs:
-            q_words = set(re.findall(r"\b\w{4,}\b", q_lower))
-            if q_words:
+            stopwords = {"what", "when", "where", "which", "your", "have", "with", "this", "that", "from", "they", "will", "would", "about", "there", "their", "does"}
+            q_tokens = [w for w in re.findall(r"\b\w{3,}\b", q_lower) if w not in stopwords]
+            if q_tokens:
+                best_chunk = None
+                best_chunk_score = 0
+
                 for doc in docs:
                     doc_text = doc.extracted_text or ""
-                    for sentence in doc_text.splitlines():
-                        s_lower = sentence.lower()
-                        s_words = set(re.findall(r"\b\w{4,}\b", s_lower))
-                        if len(q_words.intersection(s_words)) >= 2 and len(sentence.strip()) > 15:
-                            return sentence.strip()
+                    # Split into paragraphs or chunks of 2-3 lines
+                    raw_chunks = [p.strip() for p in re.split(r"\n\s*\n", doc_text) if len(p.strip()) > 20]
+                    if not raw_chunks:
+                        raw_chunks = [line.strip() for line in doc_text.splitlines() if len(line.strip()) > 20]
+
+                    for chunk in raw_chunks:
+                        chunk_lower = chunk.lower()
+                        chunk_words = set(re.findall(r"\b\w{3,}\b", chunk_lower))
+                        overlap = len(set(q_tokens).intersection(chunk_words))
+                        # Score chunk based on overlap count
+                        if overlap > best_chunk_score and overlap >= 2:
+                            best_chunk_score = overlap
+                            best_chunk = chunk
+
+                if best_chunk:
+                    return best_chunk
+
+        # 6. Business details / Contact info query
+        contact_keywords = ["phone", "call", "number", "contact", "location", "address", "where", "about", "who are you"]
+        if any(kw in q_lower for kw in contact_keywords) and biz:
+            parts = [f"🏢 **{biz.name}**"]
+            if biz.description:
+                parts.append(biz.description)
+            if biz.location:
+                parts.append(f"📍 **Location**: {biz.location}")
+            if biz.phone:
+                parts.append(f"📞 **Phone**: {biz.phone}")
+            return "\n".join(parts)
 
         return None
 
@@ -140,6 +257,25 @@ class RAGAgent:
             dynamic_answer = self._get_dynamic_business_answer(question, db, business_id)
             if dynamic_answer:
                 return dynamic_answer
+
+            # Tenant-scoped guard:
+            # If a business_id is provided, check if business exists.
+            # Never fall back to generic "Event AI Assistant" or vector DB when tenant is specified!
+            from app.models.business import Business
+            biz = db.query(Business).filter(Business.id == business_id).first()
+            if biz:
+                q_lower = question.lower()
+                if any(kw in q_lower for kw in ["what can you do", "what can you help", "what do you do", "how can you help", "help"]):
+                    services_hint = f" We offer {biz.services_text}." if biz.services_text else ""
+                    return (
+                        f"I am the AI assistant for {biz.name}.{services_hint} "
+                        f"I can help you with booking appointments, checking service availability & pricing, "
+                        f"viewing operating hours, and explaining business policies."
+                    )
+                return (
+                    f"I couldn't find specific information regarding that for {biz.name}. "
+                    f"Please feel free to ask about our services, pricing, operating hours, or booking policies."
+                )
 
         # -------------------------------------------------
         # First try focused answers for known FAQs.

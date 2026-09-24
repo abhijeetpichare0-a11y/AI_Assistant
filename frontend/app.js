@@ -1587,14 +1587,100 @@ async function loadReminderStats() {
     const bizId = currentUser?.business_id || selectedBusinessId;
     const url = bizId ? `${API_BASE}/reminders/stats?business_id=${bizId}` : `${API_BASE}/reminders/stats`;
     const res = await fetch(url);
-    if (!res.ok) return;
-    const stats = await res.json();
-    const sentEl = document.getElementById("ownerReminderSentCount");
-    const pendEl = document.getElementById("ownerReminderPendingCount");
-    if (sentEl) sentEl.textContent = stats.sent || 0;
-    if (pendEl) pendEl.textContent = stats.pending || 0;
+    if (res.ok) {
+      const stats = await res.json();
+      const sentEl = document.getElementById("ownerReminderSentCount");
+      const pendEl = document.getElementById("ownerReminderPendingCount");
+      if (sentEl) sentEl.textContent = stats.sent || 0;
+      if (pendEl) pendEl.textContent = stats.pending || 0;
+    }
+
+    // Check scheduler status
+    const statusRes = await fetch(`${API_BASE}/reminders/scheduler-status`);
+    if (statusRes.ok) {
+      const statusData = await statusRes.json();
+      const isActive = statusData.scheduler_active;
+      const statusText = document.getElementById("ownerSchedulerStatusText");
+      const statusIcon = document.getElementById("ownerSchedulerStatusIcon");
+      const btnStop = document.getElementById("btnStopReminders");
+      const btnResume = document.getElementById("btnResumeReminders");
+
+      if (statusText) {
+        statusText.textContent = isActive ? "Active" : "Stopped";
+        statusText.style.color = isActive ? "#10b981" : "#ef4444";
+      }
+      if (statusIcon) {
+        statusIcon.className = isActive ? "fa-solid fa-circle-play" : "fa-solid fa-circle-pause";
+        statusIcon.style.color = isActive ? "#10b981" : "#ef4444";
+      }
+      if (btnStop) btnStop.style.display = isActive ? "inline-flex" : "none";
+      if (btnResume) btnResume.style.display = isActive ? "none" : "inline-flex";
+    }
   } catch (err) {
     console.error("Load reminder stats error:", err);
+  }
+}
+
+async function stopOwnerReminders() {
+  const bizId = currentUser?.business_id || selectedBusinessId;
+  const countPrompt = document.getElementById("ownerReminderPendingCount")?.textContent || "all";
+  if (!confirm(`Are you sure you want to STOP the reminder scheduler and delete all pending reminders (${countPrompt} in queue)?\n\nNo automated reminders will be sent until resumed.`)) {
+    return;
+  }
+
+  const btn = document.getElementById("btnStopReminders");
+  const originalHtml = btn ? btn.innerHTML : "";
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Stopping...`;
+  }
+
+  try {
+    const url = bizId ? `${API_BASE}/reminders/stop?business_id=${bizId}` : `${API_BASE}/reminders/stop`;
+    const res = await fetch(url, { method: "POST" });
+    if (res.ok) {
+      const data = await res.json();
+      alert(`🛑 Success: ${data.message || 'Reminder processing stopped and pending reminders cleared.'}`);
+      await loadReminderStats();
+    } else {
+      const err = await res.json();
+      alert(`❌ Error stopping reminders: ${err.detail || 'Request failed'}`);
+    }
+  } catch (e) {
+    alert("❌ Error: " + e.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
+  }
+}
+
+async function resumeOwnerReminders() {
+  const btn = document.getElementById("btnResumeReminders");
+  const originalHtml = btn ? btn.innerHTML : "";
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Resuming...`;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/reminders/start`, { method: "POST" });
+    if (res.ok) {
+      const data = await res.json();
+      alert(`✅ ${data.message || 'Reminder processing resumed.'}`);
+      await loadReminderStats();
+    } else {
+      const err = await res.json();
+      alert(`❌ Error resuming scheduler: ${err.detail || 'Request failed'}`);
+    }
+  } catch (e) {
+    alert("❌ Error: " + e.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
   }
 }
 
@@ -2551,6 +2637,16 @@ function setupEventListeners() {
       }
     });
   }
+
+  const btnBannerUpload = document.getElementById("btnBannerUploadDoc");
+  if (btnBannerUpload) {
+    btnBannerUpload.addEventListener("click", () => openOwnerDocUploadModal());
+  }
+
+  const btnTableUpload = document.getElementById("btnTableUploadDoc");
+  if (btnTableUpload) {
+    btnTableUpload.addEventListener("click", () => openOwnerDocUploadModal());
+  }
 }
 
 function escapeHtml(text) {
@@ -2649,32 +2745,468 @@ async function saveOwnerWeeklyHours() {
   }
 }
 
+// ============================================================================
+// OWNER BUSINESS DOCUMENTS MANAGEMENT
+// ============================================================================
+let ownerDocSelectedFiles = [];
+
 async function loadOwnerDocuments() {
   const tbody = document.getElementById("ownerDocumentsTable");
   if (!tbody) return;
   try {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:24px; color:#94a3b8;"><i class="fa-solid fa-spinner fa-spin" style="margin-right:8px;"></i> Loading business documents...</td></tr>`;
     const res = await fetch(`${API_BASE}/owner/documents`, { headers: getAuthHeaders() });
+    if (!res.ok) {
+      throw new Error(`Server returned ${res.status}`);
+    }
     const docs = await res.json();
-    if (docs.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#94a3b8;">No documents uploaded yet. Click "+ Upload & Process Documents".</td></tr>`;
+    if (!docs || docs.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:36px 20px; color:#94a3b8;">
+        <i class="fa-solid fa-folder-open" style="font-size:36px; opacity:0.5; display:block; margin-bottom:12px; color:#10b981;"></i>
+        <div style="font-size:15px; font-weight:600; color:#f1f5f9; margin-bottom:6px;">No business documents uploaded yet</div>
+        <div style="font-size:13px; color:#94a3b8; margin-bottom:18px;">Upload menus, price catalogs, or service brochures to auto-extract knowledge for your AI assistant.</div>
+        <button type="button" class="btn btn-primary" onclick="openOwnerDocUploadModal()" style="background:linear-gradient(135deg, #10b981, #059669); font-weight:600; padding:10px 22px; display:inline-flex; align-items:center; gap:8px;">
+          <i class="fa-solid fa-file-arrow-up"></i> Upload Document Now
+        </button>
+      </td></tr>`;
       return;
     }
-    tbody.innerHTML = docs.map((d) => `
-      <tr>
-        <td>#${d.id}</td>
-        <td><strong>${escapeHtml(d.original_filename)}</strong></td>
-        <td><span class="doc-format-badge">${d.file_type.toUpperCase()}</span></td>
-        <td>${(d.file_size / 1024).toFixed(1)} KB</td>
-        <td>
-          <span class="badge" style="background:${d.processing_status === 'processed' ? '#10b981' : '#ef4444'};">
-            ${d.processing_status}
-          </span>
-        </td>
-        <td>${d.uploaded_at ? d.uploaded_at.split('T')[0] : 'Today'}</td>
-      </tr>
-    `).join('');
+    tbody.innerHTML = docs.map((d) => {
+      const isProcessed = d.processing_status === "processed";
+      const isFailed = d.processing_status === "failed";
+      const statusBg = isProcessed ? "#10b981" : (isFailed ? "#ef4444" : "#f59e0b");
+      const statusIcon = isProcessed ? "fa-circle-check" : (isFailed ? "fa-circle-xmark" : "fa-clock");
+      const previewText = d.extracted_text_preview ? escapeHtml(d.extracted_text_preview) : '<span style="color:#64748b; font-style:italic;">No text extracted</span>';
+      const sizeKb = (d.file_size / 1024).toFixed(1);
+      const safeFilename = escapeHtml(d.original_filename);
+
+      return `
+        <tr>
+          <td><span style="color:#94a3b8; font-weight:600;">#${d.id}</span></td>
+          <td>
+            <div style="font-weight:600; color:#f8fafc; max-width:220px; word-break:break-all;">
+              <i class="fa-regular fa-file" style="margin-right:6px; color:#94a3b8;"></i>${safeFilename}
+            </div>
+          </td>
+          <td><span class="doc-format-badge" style="font-size:11px; padding:3px 8px; border-radius:6px; font-weight:700;">${(d.file_type || "TXT").toUpperCase()}</span></td>
+          <td style="color:#cbd5e1; font-size:13px;">${sizeKb} KB</td>
+          <td>
+            <span class="badge" style="background:${statusBg}; display:inline-flex; align-items:center; gap:5px; font-size:11px; padding:4px 9px;" title="${escapeHtml(d.error_message || d.processing_status)}">
+              <i class="fa-solid ${statusIcon}"></i> ${d.processing_status}
+            </span>
+          </td>
+          <td style="color:#94a3b8; font-size:12px;">${d.uploaded_at || "Recent"}</td>
+          <td>
+            <div style="max-width:240px; font-size:12px; color:#cbd5e1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; background:rgba(255,255,255,0.03); padding:4px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.05);" title="${escapeHtml(d.extracted_text_preview || '')}">
+              ${previewText}
+            </div>
+          </td>
+          <td style="text-align:center; white-space:nowrap;">
+            <div style="display:inline-flex; gap:6px;">
+              <button type="button" class="btn btn-sm btn-glass" onclick="syncOwnerDocument(${d.id}, '${safeFilename.replace(/'/g, "\\'")}')" title="Sync extracted knowledge to business & AI agent" style="padding:4px 9px; font-size:12px; color:#fbbf24; border-color:rgba(245,158,11,0.3);">
+                <i class="fa-solid fa-rotate"></i> Sync
+              </button>
+              <button type="button" class="btn btn-sm btn-glass" onclick="viewOwnerDocument(${d.id})" title="View extracted text" style="padding:4px 9px; font-size:12px;">
+                <i class="fa-solid fa-eye" style="color:#38bdf8;"></i> View
+              </button>
+              <button type="button" class="btn btn-sm btn-glass" onclick="deleteOwnerDocument(${d.id}, '${safeFilename.replace(/'/g, "\\'")}')" title="Delete document" style="padding:4px 9px; font-size:12px; color:#f87171; border-color:rgba(239,68,68,0.3);">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
   } catch (err) {
     console.error("Error loading owner documents:", err);
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:20px; color:#f87171;">Failed to load documents: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+function triggerOwnerDocFileInput() {
+  const fileInput = document.getElementById("ownerDocFileInput");
+  if (fileInput) {
+    fileInput.click();
+  }
+}
+
+function openOwnerDocUploadModal() {
+  ownerDocSelectedFiles = [];
+  const errBox = document.getElementById("ownerDocUploadError");
+  if (errBox) errBox.style.display = "none";
+  renderOwnerDocSelectedList();
+  const modal = document.getElementById("ownerDocUploadModal");
+  if (modal) {
+    modal.style.display = "flex";
+    modal.style.opacity = "1";
+    modal.style.pointerEvents = "all";
+    modal.classList.add("open");
+  }
+  initOwnerDocDropzone();
+}
+
+function closeOwnerDocUploadModal() {
+  const modal = document.getElementById("ownerDocUploadModal");
+  if (modal) {
+    modal.classList.remove("open");
+    modal.style.display = "none";
+    modal.style.opacity = "0";
+    modal.style.pointerEvents = "none";
+  }
+  ownerDocSelectedFiles = [];
+}
+
+function initOwnerDocDropzone() {
+  const dropzone = document.getElementById("ownerDocDropzone");
+  const fileInput = document.getElementById("ownerDocFileInput");
+  if (!dropzone || dropzone.getAttribute("data-inited")) return;
+
+  dropzone.setAttribute("data-inited", "true");
+
+  dropzone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropzone.style.borderColor = "#10b981";
+    dropzone.style.background = "rgba(16, 185, 129, 0.1)";
+  });
+
+  dropzone.addEventListener("dragleave", (e) => {
+    e.preventDefault();
+    dropzone.style.borderColor = "";
+    dropzone.style.background = "";
+  });
+
+  dropzone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropzone.style.borderColor = "";
+    dropzone.style.background = "";
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      addOwnerDocFiles(Array.from(e.dataTransfer.files));
+    }
+  });
+}
+
+function handleOwnerDocFilesSelected(e) {
+  if (e.target.files && e.target.files.length > 0) {
+    addOwnerDocFiles(Array.from(e.target.files));
+    e.target.value = "";
+  }
+}
+
+function addOwnerDocFiles(files) {
+  const allowedExts = [".pdf", ".docx", ".doc", ".txt", ".csv", ".xlsx", ".xls"];
+  const errBox = document.getElementById("ownerDocUploadError");
+  const errText = document.getElementById("ownerDocUploadErrorText");
+
+  for (const f of files) {
+    const ext = "." + f.name.split(".").pop().toLowerCase();
+    if (!allowedExts.includes(ext)) {
+      if (errBox && errText) {
+        errText.textContent = `File "${f.name}" has an unsupported format. Allowed: PDF, DOCX, TXT, CSV, XLSX.`;
+        errBox.style.display = "block";
+      }
+      continue;
+    }
+    if (f.size === 0) {
+      if (errBox && errText) {
+        errText.textContent = `File "${f.name}" is empty (0 bytes). Please upload a file with content.`;
+        errBox.style.display = "block";
+      }
+      continue;
+    }
+    if (f.size > 15 * 1024 * 1024) {
+      if (errBox && errText) {
+        errText.textContent = `File "${f.name}" exceeds the maximum allowed size of 15MB.`;
+        errBox.style.display = "block";
+      }
+      continue;
+    }
+    // Avoid duplicate names in same batch
+    if (!ownerDocSelectedFiles.some(existing => existing.name === f.name && existing.size === f.size)) {
+      ownerDocSelectedFiles.push(f);
+      if (errBox) errBox.style.display = "none";
+    }
+  }
+  renderOwnerDocSelectedList();
+}
+
+function removeOwnerDocFile(index) {
+  ownerDocSelectedFiles.splice(index, 1);
+  renderOwnerDocSelectedList();
+}
+
+function renderOwnerDocSelectedList() {
+  const container = document.getElementById("ownerDocSelectedListContainer");
+  const list = document.getElementById("ownerDocSelectedList");
+  const countSpan = document.getElementById("ownerDocSelectedCount");
+  const submitBtn = document.getElementById("btnOwnerDocUploadSubmit");
+
+  if (!submitBtn) return;
+
+  if (ownerDocSelectedFiles.length === 0) {
+    if (container) container.style.display = "none";
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = `<i class="fa-solid fa-folder-open"></i> Browse Files to Upload`;
+    submitBtn.style.background = "linear-gradient(135deg, #10b981, #059669)";
+    return;
+  }
+
+  if (container) container.style.display = "block";
+  if (countSpan) countSpan.textContent = ownerDocSelectedFiles.length;
+  submitBtn.disabled = false;
+  submitBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Upload & Extract Text (${ownerDocSelectedFiles.length})`;
+  submitBtn.style.background = "linear-gradient(135deg, #10b981, #059669)";
+
+  if (list) {
+    list.innerHTML = ownerDocSelectedFiles.map((file, idx) => `
+      <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); padding:8px 12px; border-radius:8px;">
+        <div style="display:flex; align-items:center; gap:10px; overflow:hidden;">
+          <i class="fa-regular fa-file-lines" style="color:#10b981; font-size:16px;"></i>
+          <div style="overflow:hidden;">
+            <div style="font-size:13px; font-weight:600; color:#f1f5f9; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${escapeHtml(file.name)}</div>
+            <div style="font-size:11px; color:#94a3b8;">${(file.size / 1024).toFixed(1)} KB</div>
+          </div>
+        </div>
+        <button type="button" class="btn-icon" onclick="removeOwnerDocFile(${idx})" title="Remove" style="color:#ef4444; width:28px; height:28px;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    `).join("");
+  }
+}
+
+async function submitOwnerDocUpload() {
+  if (ownerDocSelectedFiles.length === 0) {
+    triggerOwnerDocFileInput();
+    return;
+  }
+
+  const submitBtn = document.getElementById("btnOwnerDocUploadSubmit");
+  const errBox = document.getElementById("ownerDocUploadError");
+  const errText = document.getElementById("ownerDocUploadErrorText");
+
+  if (errBox) errBox.style.display = "none";
+
+  const originalBtnHtml = submitBtn ? submitBtn.innerHTML : "";
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Uploading & Extracting...`;
+  }
+
+  try {
+    const formData = new FormData();
+    for (const file of ownerDocSelectedFiles) {
+      formData.append("files", file);
+    }
+    const autoSyncEl = document.getElementById("ownerDocAutoSyncCheckbox");
+    const syncToSystem = autoSyncEl ? autoSyncEl.checked : true;
+    formData.append("sync_to_system", syncToSystem);
+
+    const headers = {};
+    if (currentUser) {
+      headers["X-User-Phone"] = currentUser.phone;
+      headers["X-User-Role"] = currentUser.role || "owner";
+    }
+
+    const res = await fetch(`${API_BASE}/owner/documents`, {
+      method: "POST",
+      headers: headers,
+      body: formData
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || "Failed to upload document(s).");
+    }
+
+    closeOwnerDocUploadModal();
+    let msg = data.message || "Documents uploaded and extracted successfully!";
+    if (data.sync_summary) {
+      const s = data.sync_summary;
+      const details = [];
+      if (s.services_added > 0) details.push(`${s.services_added} services added`);
+      if (s.services_updated > 0) details.push(`${s.services_updated} services updated`);
+      if (s.hours_updated > 0) details.push(`${s.hours_updated} operating days updated`);
+      if (s.rules_updated > 0) details.push(`${s.rules_updated} booking rules configured`);
+      if (s.faqs_added > 0) details.push(`${s.faqs_added} FAQs added`);
+      if (details.length > 0) {
+        msg += `\n\n⚡ Synced to system! ${details.join(', ')}.`;
+      }
+    }
+    alert(`✅ ${msg}`);
+    showOwnerTab('ownerDocuments');
+    loadOwnerDocuments();
+    if (typeof loadOwnerServices === "function") loadOwnerServices();
+    if (typeof loadOwnerWeeklyHours === "function") loadOwnerWeeklyHours();
+    if (typeof loadOwnerBusinessInfo === "function") loadOwnerBusinessInfo();
+  } catch (err) {
+    console.error("Document upload error:", err);
+    if (errBox && errText) {
+      errText.textContent = err.message;
+      errBox.style.display = "block";
+    } else {
+      alert("❌ Upload error: " + err.message);
+    }
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      renderOwnerDocSelectedList();
+    }
+  }
+}
+
+async function viewOwnerDocument(docId) {
+  try {
+    const res = await fetch(`${API_BASE}/owner/documents/${docId}`, { headers: getAuthHeaders() });
+    if (!res.ok) {
+      throw new Error("Unable to fetch document details.");
+    }
+    const doc = await res.json();
+
+    const titleEl = document.getElementById("previewDocTitle");
+    const metaEl = document.getElementById("previewDocMeta");
+    const textEl = document.getElementById("previewDocExtractedText");
+    const charEl = document.getElementById("previewDocCharCount");
+    const errBanner = document.getElementById("previewDocErrorBanner");
+    const errMsg = document.getElementById("previewDocErrorMsg");
+
+    if (titleEl) titleEl.textContent = doc.original_filename;
+    if (metaEl) {
+      metaEl.innerHTML = `Format: <strong>${(doc.file_type || '').toUpperCase()}</strong> • Size: <strong>${(doc.file_size / 1024).toFixed(1)} KB</strong> • Uploaded: <strong>${doc.uploaded_at || 'N/A'}</strong>`;
+    }
+
+    if (doc.processing_status === "failed" && doc.error_message) {
+      if (errBanner && errMsg) {
+        errMsg.textContent = doc.error_message;
+        errBanner.style.display = "block";
+      }
+    } else if (errBanner) {
+      errBanner.style.display = "none";
+    }
+
+    const textContent = doc.extracted_text || "(No readable text extracted from this document)";
+    if (textEl) textEl.textContent = textContent;
+    if (charEl) charEl.textContent = `${textContent.length.toLocaleString()} characters extracted`;
+
+    const modal = document.getElementById("ownerDocPreviewModal");
+    if (modal) {
+      modal.style.display = "flex";
+      modal.classList.add("open");
+    }
+  } catch (err) {
+    alert("❌ Error loading document content: " + err.message);
+  }
+}
+
+function closeOwnerDocPreviewModal() {
+  const modal = document.getElementById("ownerDocPreviewModal");
+  if (modal) {
+    modal.classList.remove("open");
+    modal.style.display = "none";
+  }
+}
+
+function copyExtractedDocText() {
+  const textEl = document.getElementById("previewDocExtractedText");
+  if (!textEl || !textEl.textContent) return;
+  navigator.clipboard.writeText(textEl.textContent).then(() => {
+    alert("📋 Extracted text copied to clipboard!");
+  }).catch(() => {
+    alert("Unable to copy to clipboard.");
+  });
+}
+
+async function deleteOwnerDocument(docId, docName) {
+  if (!confirm(`Are you sure you want to delete "${docName}"?\n\nThis will remove the document file and its extracted text permanently.`)) {
+    return;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/owner/documents/${docId}`, {
+      method: "DELETE",
+      headers: getAuthHeaders()
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || "Failed to delete document.");
+    }
+    alert(`🗑️ ${data.message || "Document deleted successfully."}`);
+    loadOwnerDocuments();
+  } catch (err) {
+    console.error("Delete document error:", err);
+    alert("❌ Delete failed: " + err.message);
+  }
+}
+
+async function syncOwnerDocument(docId, docName) {
+  if (!confirm(`Sync "${docName}" with business system?\n\nThis will extract services, hours, policies, and FAQs from this document and apply them to your catalog & AI agent.`)) {
+    return;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/owner/documents/${docId}/sync`, {
+      method: "POST",
+      headers: getAuthHeaders()
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || "Failed to sync document.");
+    }
+    let msg = data.message || "Document synced successfully.";
+    if (data.sync_summary) {
+      const s = data.sync_summary;
+      const details = [];
+      if (s.services_added > 0) details.push(`${s.services_added} services added`);
+      if (s.services_updated > 0) details.push(`${s.services_updated} services updated`);
+      if (s.hours_updated > 0) details.push(`${s.hours_updated} days hours updated`);
+      if (s.rules_updated > 0) details.push(`${s.rules_updated} policies configured`);
+      if (s.faqs_added > 0) details.push(`${s.faqs_added} FAQs configured`);
+      if (details.length > 0) {
+        msg += `\n\n⚡ ${details.join(', ')}.`;
+      }
+    }
+    alert(`✅ ${msg}`);
+    loadOwnerDocuments();
+    if (typeof loadOwnerServices === "function") loadOwnerServices();
+    if (typeof loadOwnerWeeklyHours === "function") loadOwnerWeeklyHours();
+    if (typeof loadOwnerBusinessInfo === "function") loadOwnerBusinessInfo();
+  } catch (err) {
+    console.error("Sync document error:", err);
+    alert("❌ Sync failed: " + err.message);
+  }
+}
+
+async function syncAllOwnerDocuments() {
+  if (!confirm(`⚡ Sync all processed business documents to your system?\n\nThis will re-extract services, weekly operating hours, booking rules, and FAQs from all your uploaded documents and update your catalog & AI agent.`)) {
+    return;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/owner/documents/sync-all`, {
+      method: "POST",
+      headers: getAuthHeaders()
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || "Failed to sync documents.");
+    }
+    let msg = data.message || "All documents synced successfully.";
+    if (data.sync_summary) {
+      const s = data.sync_summary;
+      const details = [];
+      if (s.services_added > 0) details.push(`${s.services_added} services added`);
+      if (s.services_updated > 0) details.push(`${s.services_updated} services updated`);
+      if (s.hours_updated > 0) details.push(`${s.hours_updated} days hours updated`);
+      if (s.rules_updated > 0) details.push(`${s.rules_updated} policies configured`);
+      if (s.faqs_added > 0) details.push(`${s.faqs_added} FAQs configured`);
+      if (details.length > 0) {
+        msg += `\n\n⚡ Result: ${details.join(', ')}.`;
+      }
+    }
+    alert(`✅ ${msg}`);
+    loadOwnerDocuments();
+    if (typeof loadOwnerServices === "function") loadOwnerServices();
+    if (typeof loadOwnerWeeklyHours === "function") loadOwnerWeeklyHours();
+    if (typeof loadOwnerBusinessInfo === "function") loadOwnerBusinessInfo();
+  } catch (err) {
+    console.error("Sync all documents error:", err);
+    alert("❌ Sync all failed: " + err.message);
   }
 }
 
@@ -2725,18 +3257,33 @@ function openDocumentSetupModal() {
     listEl.style.display = "none";
   }
   const btn = document.getElementById("btnRunExtraction");
-  if (btn) btn.disabled = true;
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = `<i class="fa-solid fa-folder-open"></i> Browse Files to Analyze`;
+  }
 
   document.getElementById("setupStepUpload").style.display = "block";
   document.getElementById("setupStepLoading").style.display = "none";
   document.getElementById("setupStepReview").style.display = "none";
 
   initDocDropzone();
-  document.getElementById("documentSetupModal")?.classList.add("open");
+  const modal = document.getElementById("documentSetupModal");
+  if (modal) {
+    modal.style.display = "flex";
+    modal.style.opacity = "1";
+    modal.style.pointerEvents = "all";
+    modal.classList.add("open");
+  }
 }
 
 function closeDocumentSetupModal() {
-  document.getElementById("documentSetupModal")?.classList.remove("open");
+  const modal = document.getElementById("documentSetupModal");
+  if (modal) {
+    modal.classList.remove("open");
+    modal.style.display = "none";
+    modal.style.opacity = "0";
+    modal.style.pointerEvents = "none";
+  }
 }
 
 function handleSetupFilesSelected(event) {
@@ -2750,32 +3297,38 @@ function handleSetupFilesSelected(event) {
 function renderSetupFilesList() {
   const listEl = document.getElementById("setupSelectedFilesList");
   const btn = document.getElementById("btnRunExtraction");
-  if (!listEl || !btn) return;
+  if (!btn) return;
 
   if (setupSelectedFiles.length === 0) {
-    listEl.style.display = "none";
-    listEl.innerHTML = "";
-    btn.disabled = true;
+    if (listEl) {
+      listEl.style.display = "none";
+      listEl.innerHTML = "";
+    }
+    btn.disabled = false;
+    btn.innerHTML = `<i class="fa-solid fa-folder-open"></i> Browse Files to Analyze`;
     return;
   }
 
-  listEl.style.display = "flex";
-  listEl.innerHTML = setupSelectedFiles.map((f, i) => `
-    <div class="doc-file-chip">
-      <div class="doc-file-chip-info">
-        <i class="fa-solid fa-file-lines"></i>
-        <div>
-          <div style="font-weight:600;">${escapeHtml(f.name)}</div>
-          <div class="doc-file-chip-size">${(f.size / 1024).toFixed(1)} KB</div>
+  if (listEl) {
+    listEl.style.display = "flex";
+    listEl.innerHTML = setupSelectedFiles.map((f, i) => `
+      <div class="doc-file-chip">
+        <div class="doc-file-chip-info">
+          <i class="fa-solid fa-file-lines"></i>
+          <div>
+            <div style="font-weight:600;">${escapeHtml(f.name)}</div>
+            <div class="doc-file-chip-size">${(f.size / 1024).toFixed(1)} KB</div>
+          </div>
         </div>
+        <button type="button" class="doc-file-remove-btn" onclick="removeSetupFile(${i})">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
       </div>
-      <button type="button" class="doc-file-remove-btn" onclick="removeSetupFile(${i})">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-    </div>
-  `).join('');
+    `).join('');
+  }
 
   btn.disabled = false;
+  btn.innerHTML = `<i class="fa-solid fa-bolt"></i> Analyze & Extract with AI (${setupSelectedFiles.length})`;
 }
 
 function removeSetupFile(index) {
@@ -2790,7 +3343,10 @@ function backToSetupUploadStep() {
 }
 
 async function submitDocumentSetupExtraction() {
-  if (setupSelectedFiles.length === 0) return;
+  if (setupSelectedFiles.length === 0) {
+    document.getElementById("setupFileInput")?.click();
+    return;
+  }
 
   document.getElementById("setupStepUpload").style.display = "none";
   document.getElementById("setupStepLoading").style.display = "block";

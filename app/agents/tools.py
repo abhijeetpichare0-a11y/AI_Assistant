@@ -15,6 +15,15 @@ def get_services(db: Session, business_id: int):
     return db.query(Service).filter(Service.business_id == business_id, Service.is_active == True).all()
 
 
+def get_business_rules(db: Session, business_id: int) -> dict:
+    rules = db.query(BusinessRule).filter(BusinessRule.business_id == business_id).all()
+    return {r.rule_key: r.rule_value for r in rules}
+
+
+def get_business_faqs(db: Session, business_id: int):
+    return db.query(BusinessFAQ).filter(BusinessFAQ.business_id == business_id).all()
+
+
 def get_service_details(db: Session, business_id: int, service_name: str):
     exact = (
         db.query(Service)

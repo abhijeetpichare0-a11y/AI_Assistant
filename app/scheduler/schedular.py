@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from app.database.database import SessionLocal
 from app.models import Reminder
@@ -5,7 +6,24 @@ from app.services.notification_service import (
     send_appointment_reminder
 )
 
+# Disabled/stopped by default to stop all pending reminders
+SCHEDULER_ACTIVE = os.getenv("REMINDER_SCHEDULER_ACTIVE", "false").lower() in ("true", "1", "yes")
+
+def stop_reminder_scheduler():
+    global SCHEDULER_ACTIVE
+    SCHEDULER_ACTIVE = False
+
+def start_reminder_scheduler():
+    global SCHEDULER_ACTIVE
+    SCHEDULER_ACTIVE = True
+
+def is_reminder_scheduler_active():
+    return SCHEDULER_ACTIVE
+
 def process_pending_reminders():
+    if not SCHEDULER_ACTIVE:
+        return 0
+
     db = SessionLocal()
     processed_count = 0
 

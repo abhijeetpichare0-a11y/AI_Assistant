@@ -1,6 +1,7 @@
-from datetime import date
+import os
+from datetime import date, datetime
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
@@ -19,6 +20,7 @@ from app.routes.auth import require_owner
 from app.agents.owner_agent import OwnerAgent
 from app.services.document_parser import parse_and_save_uploaded_file
 from app.services.ai_business_extractor import extract_business_profile_from_documents, DAYS_OF_WEEK
+from app.services.document_sync import sync_document_data_to_system
 from app.schemas.document_setup import (
     DocumentExtractionResponse,
     BusinessSetupConfirmRequest
@@ -155,7 +157,8 @@ async def upload_setup_documents(
         parsed = parse_and_save_uploaded_file(
             file_bytes=file_bytes,
             original_filename=upload.filename,
-            owner_id=current_user.id
+            owner_id=current_user.id,
+            business_id=current_user.business_id
         )
 
         doc_record = BusinessDocument(
@@ -328,28 +331,298 @@ def confirm_business_setup(
     }
 
 
+# -------------------------------------------------------------------
+# BUSINESS DOCUMENTS MANAGEMENT (UPLOAD, LIST, VIEW, DELETE)
+# -------------------------------------------------------------------
+@router.post("/documents")
+async def upload_owner_documents(
+    files: List[UploadFile] = File(...),
+    sync_to_system: bool = Form(True),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_owner)
+):
+    """
+    Dedicated endpoint for owners to upload multiple business documents
+    (PDF, DOCX, TXT, CSV, etc.) into the document repository with auto text extraction
+    and automatic synchronization with business services, hours, and AI agent.
+    """
+    if not files:
+        raise HTTPException(status_code=400, detail="No files uploaded.")
+
+    # Resolve business if not explicitly set on user
+    biz_id = current_user.business_id
+    if not biz_id and current_user.phone:
+        biz = db.query(Business).filter(Business.phone == current_user.phone).first()
+        if biz:
+            biz_id = biz.id
+            current_user.business_id = biz.id
+            db.commit()
+
+    uploaded_results = []
+    created_doc_records = []
+    errors = []
+
+    for upload in files:
+        if not upload.filename:
+            continue
+        try:
+            file_bytes = await upload.read()
+            if not file_bytes:
+                errors.append(f"'{upload.filename}': File is empty (0 bytes).")
+                continue
+
+            parsed = parse_and_save_uploaded_file(
+                file_bytes=file_bytes,
+                original_filename=upload.filename,
+                owner_id=current_user.id,
+                business_id=biz_id
+            )
+
+            doc_record = BusinessDocument(
+                business_id=biz_id,
+                owner_id=current_user.id,
+                original_filename=parsed["original_filename"],
+                file_type=parsed["file_type"],
+                file_path=parsed["file_path"],
+                file_size=parsed["file_size"],
+                extracted_text=parsed["extracted_text"],
+                processing_status=parsed["processing_status"],
+                error_message=parsed["error_message"],
+                uploaded_at=datetime.utcnow(),
+                processed_at=datetime.utcnow() if parsed["processing_status"] == "processed" else None
+            )
+            db.add(doc_record)
+            db.commit()
+            db.refresh(doc_record)
+            created_doc_records.append(doc_record)
+
+            preview = parsed["extracted_text"][:200] + ("..." if len(parsed["extracted_text"]) > 200 else "")
+
+            uploaded_results.append({
+                "id": doc_record.id,
+                "business_id": doc_record.business_id,
+                "original_filename": doc_record.original_filename,
+                "file_type": doc_record.file_type,
+                "file_size": doc_record.file_size,
+                "processing_status": doc_record.processing_status,
+                "error_message": doc_record.error_message,
+                "uploaded_at": doc_record.uploaded_at.strftime("%Y-%m-%d %H:%M") if doc_record.uploaded_at else "",
+                "extracted_text_preview": preview,
+                "extracted_text_length": len(parsed["extracted_text"] or "")
+            })
+
+        except HTTPException as he:
+            errors.append(f"'{upload.filename}': {he.detail}")
+        except Exception as e:
+            errors.append(f"'{upload.filename}': Unexpected error - {str(e)}")
+
+    if not uploaded_results and errors:
+        raise HTTPException(status_code=400, detail=" | ".join(errors))
+
+    # Auto-sync extracted content to system services, hours, policies & FAQs
+    sync_summary = None
+    if sync_to_system and biz_id and created_doc_records:
+        try:
+            sync_summary = sync_document_data_to_system(
+                db=db,
+                business_id=biz_id,
+                documents=created_doc_records
+            )
+        except Exception as se:
+            errors.append(f"Document sync error: {str(se)}")
+
+    return {
+        "message": f"Successfully processed {len(uploaded_results)} document(s).",
+        "documents": uploaded_results,
+        "sync_summary": sync_summary,
+        "errors": errors if errors else None
+    }
+
+
 @router.get("/documents")
 def get_owner_documents(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_owner)
 ):
-    docs = db.query(BusinessDocument).filter(
-        (BusinessDocument.owner_id == current_user.id) |
-        (BusinessDocument.business_id == current_user.business_id)
-    ).order_by(BusinessDocument.uploaded_at.desc()).all()
+    """
+    List all uploaded documents associated with the owner or their business.
+    """
+    biz_id = current_user.business_id
+    if biz_id:
+        docs = db.query(BusinessDocument).filter(
+            (BusinessDocument.business_id == biz_id) |
+            (BusinessDocument.owner_id == current_user.id)
+        ).order_by(BusinessDocument.uploaded_at.desc()).all()
+    else:
+        docs = db.query(BusinessDocument).filter(
+            BusinessDocument.owner_id == current_user.id
+        ).order_by(BusinessDocument.uploaded_at.desc()).all()
 
     return [
         {
             "id": d.id,
+            "business_id": d.business_id,
             "original_filename": d.original_filename,
             "file_type": d.file_type,
             "file_size": d.file_size,
             "processing_status": d.processing_status,
             "error_message": d.error_message,
-            "uploaded_at": d.uploaded_at.strftime("%Y-%m-%d %H:%M") if d.uploaded_at else ""
+            "uploaded_at": d.uploaded_at.strftime("%Y-%m-%d %H:%M") if d.uploaded_at else "",
+            "extracted_text_preview": (d.extracted_text[:180] + "...") if d.extracted_text and len(d.extracted_text) > 180 else (d.extracted_text or ""),
+            "extracted_text_length": len(d.extracted_text or "")
         }
         for d in docs
     ]
+
+
+@router.get("/documents/{doc_id}")
+def get_owner_document_detail(
+    doc_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_owner)
+):
+    """
+    Fetch complete details of a specific document including its extracted text.
+    Enforces business/tenant isolation.
+    """
+    doc = db.query(BusinessDocument).filter(BusinessDocument.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found.")
+
+    # Multi-tenant isolation check
+    if doc.owner_id != current_user.id and (not current_user.business_id or doc.business_id != current_user.business_id):
+        raise HTTPException(status_code=403, detail="Access denied. You do not have permission to view this document.")
+
+    return {
+        "id": doc.id,
+        "business_id": doc.business_id,
+        "original_filename": doc.original_filename,
+        "file_type": doc.file_type,
+        "file_size": doc.file_size,
+        "file_path": doc.file_path,
+        "processing_status": doc.processing_status,
+        "error_message": doc.error_message,
+        "extracted_text": doc.extracted_text or "",
+        "extracted_text_length": len(doc.extracted_text or ""),
+        "uploaded_at": doc.uploaded_at.strftime("%Y-%m-%d %H:%M:%S") if doc.uploaded_at else "",
+        "processed_at": doc.processed_at.strftime("%Y-%m-%d %H:%M:%S") if doc.processed_at else ""
+    }
+
+
+@router.delete("/documents/{doc_id}")
+def delete_owner_document(
+    doc_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_owner)
+):
+    """
+    Delete a document from both the database and file system.
+    Enforces business/tenant isolation.
+    """
+    doc = db.query(BusinessDocument).filter(BusinessDocument.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found.")
+
+    # Multi-tenant isolation check
+    if doc.owner_id != current_user.id and (not current_user.business_id or doc.business_id != current_user.business_id):
+        raise HTTPException(status_code=403, detail="Access denied. You do not have permission to delete this document.")
+
+    # Remove file from disk
+    if doc.file_path and os.path.exists(doc.file_path):
+        try:
+            os.remove(doc.file_path)
+        except Exception:
+            pass
+
+    doc_name = doc.original_filename
+    db.delete(doc)
+    db.commit()
+
+    return {
+        "status": "success",
+        "message": f"Document '{doc_name}' was successfully deleted.",
+        "id": doc_id
+    }
+
+
+@router.post("/documents/{doc_id}/sync")
+def sync_owner_document_endpoint(
+    doc_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_owner)
+):
+    """
+    Explicitly extract and sync a single document's services, hours, policies,
+    and FAQs into the system catalog and AI agent.
+    """
+    doc = db.query(BusinessDocument).filter(BusinessDocument.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found.")
+
+    biz_id = current_user.business_id
+    if not biz_id and current_user.phone:
+        biz = db.query(Business).filter(Business.phone == current_user.phone).first()
+        if biz:
+            biz_id = biz.id
+
+    if doc.owner_id != current_user.id and (not biz_id or doc.business_id != biz_id):
+        raise HTTPException(status_code=403, detail="Access denied. You do not have permission to sync this document.")
+
+    target_biz_id = doc.business_id or biz_id
+    if not target_biz_id:
+        raise HTTPException(status_code=400, detail="Cannot sync document: No business associated with this owner.")
+
+    sync_summary = sync_document_data_to_system(
+        db=db,
+        business_id=target_biz_id,
+        documents=[doc]
+    )
+
+    return {
+        "status": "success",
+        "message": f"Successfully synced '{doc.original_filename}' with business system.",
+        "doc_id": doc.id,
+        "sync_summary": sync_summary
+    }
+
+
+@router.post("/documents/sync-all")
+def sync_all_owner_documents_endpoint(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_owner)
+):
+    """
+    Sync all uploaded and processed documents for the owner's business into the system.
+    """
+    biz_id = current_user.business_id
+    if not biz_id and current_user.phone:
+        biz = db.query(Business).filter(Business.phone == current_user.phone).first()
+        if biz:
+            biz_id = biz.id
+
+    if not biz_id:
+        raise HTTPException(status_code=400, detail="No business associated with current owner.")
+
+    docs = db.query(BusinessDocument).filter(
+        (BusinessDocument.business_id == biz_id) | (BusinessDocument.owner_id == current_user.id),
+        BusinessDocument.processing_status == "processed"
+    ).all()
+
+    if not docs:
+        raise HTTPException(status_code=404, detail="No processed documents found to sync.")
+
+    sync_summary = sync_document_data_to_system(
+        db=db,
+        business_id=biz_id,
+        documents=docs
+    )
+
+    return {
+        "status": "success",
+        "message": f"Successfully synced {len(docs)} document(s) with business system.",
+        "documents_count": len(docs),
+        "sync_summary": sync_summary
+    }
 
 
 # -------------------------------------------------------------------

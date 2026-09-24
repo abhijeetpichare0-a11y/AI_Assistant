@@ -17,7 +17,6 @@ from app.routes.auth import router as auth_router
 from app.routes.owner import router as owner_router
 from app.routes.user import router as user_router
 from app.routes.superadmin import router as superadmin_router
-from app.routes.chatbot import router as chatbot_router
 from app.scheduler.schedular import process_pending_reminders
 
 

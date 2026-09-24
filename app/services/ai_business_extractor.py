@@ -251,9 +251,14 @@ def extract_services_from_text(
             if not line_str or line_str.startswith("---") or line_str.startswith("["):
                 continue
 
+            # Strip leading list bullets/numbering: e.g. "1. ", "2) ", "- ", "• "
+            clean_line = re.sub(r"^\s*(?:\d+[\.\)]|\-|\*|\•)\s*", "", line_str).strip()
+            if not clean_line:
+                continue
+
             # Check table pipes
-            if "|" in line_str:
-                parts = [p.strip() for p in line_str.split("|")]
+            if "|" in clean_line:
+                parts = [p.strip() for p in clean_line.split("|")]
                 if len(parts) >= 2:
                     name_cand = parts[0]
                     # Check if second part or third part is price
@@ -276,9 +281,62 @@ def extract_services_from_text(
                         record_service(s_name, price_val, duration_val, doc_name, services_found, conflicts)
                         continue
 
+            # Check general lines with price indicator: e.g.
+            # "Swedish Full Body Massage: 60 mins - Rs. 2400 (Relaxing therapy)"
+            # "Hot Stone Therapy: 50 mins - Rs. 3500"
+            # "Deep Tissue Therapy: 45 mins - Rs. 3000"
+            price_match = re.search(r"(?:₹|Rs\.?|INR|\$)\s*(\d+(?:\.\d{2})?)", clean_line, re.IGNORECASE)
+            if price_match:
+                price_str = price_match.group(1)
+                try:
+                    price_val = float(price_str)
+                except ValueError:
+                    price_val = None
+
+                if price_val is not None and 10 <= price_val <= 500000:
+                    dm = re.search(r"(\d+)\s*(?:min|mins|minute|minutes|hrs|hour|hours)", clean_line, re.IGNORECASE)
+                    duration_val = 30
+                    if dm:
+                        try:
+                            d_num = int(dm.group(1))
+                            if "hr" in dm.group(0).lower():
+                                d_num *= 60
+                            duration_val = d_num
+                        except ValueError:
+                            duration_val = 30
+
+                    first_delim = None
+                    for delim in [":", "-", "|"]:
+                        idx = clean_line.find(delim)
+                        if idx > 2:
+                            if first_delim is None or idx < first_delim:
+                                first_delim = idx
+
+                    if first_delim:
+                        name_cand = clean_line[:first_delim].strip()
+                    else:
+                        name_cand = clean_line[:price_match.start()].strip()
+
+                    name_cand = re.sub(r"\s*\([^)]*\)", "", name_cand).strip()
+                    name_lower = name_cand.lower()
+
+                    skip_words = [
+                        "operating hour", "opening hour", "business hour", "timing", "schedule",
+                        "cancellation", "deposit", "policy", "policies", "rule", "faq", "question",
+                        "contact", "phone", "address", "location", "total", "subtotal", "tax",
+                        "service name", "item name", "price list", "menu"
+                    ]
+                    if (
+                        len(name_cand) >= 3 and len(name_cand) <= 60
+                        and not any(sw in name_lower for sw in skip_words)
+                    ):
+                        s_name = name_cand.title()
+                        record_service(s_name, price_val, duration_val, doc_name, services_found, conflicts)
+                        continue
+
             # Check regex patterns
             for p in service_patterns:
-                m = re.match(p, line_str, re.IGNORECASE)
+                m = re.match(p, clean_line, re.IGNORECASE)
                 if m:
                     s_name = m.group(1).strip().title()
                     # Skip common headers
